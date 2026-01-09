@@ -3,13 +3,18 @@ Binaries/
 DerivedDataCache/
 Intermediate/
 Saved/
+**/Binaries/
+**/Intermediate/
+**/DerivedDataCache/
+
+# IDEs
+.vs/
 .vscode/
 *.sln
 *.xcodeproj
 *.xcworkspace
 
 # Visual Studio / Rider
-.vs/
 *.VC.db
 *.VC.VC.opendb
 *.opendb
