@@ -56,6 +56,7 @@ This project emphasizes:
 
 ## Project Structure
 
+``` text
 Project-Ironclad/
 │
 ├── Ironclad/ (Unreal project)
@@ -66,7 +67,7 @@ Project-Ironclad/
 │ └── devlog.md
 │
 └── README.md
-
+```
 ---
 
 ## Documentation
