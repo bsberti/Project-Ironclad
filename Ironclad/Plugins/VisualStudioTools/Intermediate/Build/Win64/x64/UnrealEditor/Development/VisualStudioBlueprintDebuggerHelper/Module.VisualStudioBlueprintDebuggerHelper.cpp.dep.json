@@ -1,0 +1,15 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "c:\\dev\\project-ironclad\\ironclad\\plugins\\visualstudiotools\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\visualstudioblueprintdebuggerhelper\\module.visualstudioblueprintdebuggerhelper.cpp",
+        "ProvidedModule": "",
+        "PCH": "c:\\dev\\project-ironclad\\ironclad\\intermediate\\build\\win64\\x64\\ironcladeditor\\development\\unrealed\\sharedpch.unrealed.project.nonoptimized.valapi.valexpapi.cpp20.h.pch",
+        "Includes": [
+            "c:\\dev\\project-ironclad\\ironclad\\plugins\\visualstudiotools\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\visualstudioblueprintdebuggerhelper\\definitions.visualstudioblueprintdebuggerhelper.h",
+            "c:\\dev\\project-ironclad\\ironclad\\plugins\\visualstudiotools\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\visualstudioblueprintdebuggerhelper\\permoduleinline.gen.cpp",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\core\\public\\hal\\permoduleinline.inl"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

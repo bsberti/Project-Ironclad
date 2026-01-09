@@ -1,0 +1,23 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.VisualStudioTools.cpp.obj": [
+			"BlueprintReferencesCommandlet.gen.cpp.obj",
+			"VisualStudioTools.init.gen.cpp.obj",
+			"VisualStudioToolsBlueprintBreakpointExtension.gen.cpp.obj",
+			"VisualStudioToolsCommandlet.gen.cpp.obj",
+			"VisualStudioToolsCommandletBase.gen.cpp.obj",
+			"VSServerCommandlet.gen.cpp.obj",
+			"VSTestAdapterCommandlet.gen.cpp.obj",
+			"PerModuleInline.gen.cpp.obj",
+			"BlueprintAssetHelper.cpp.obj",
+			"BlueprintReferencesCommandlet.cpp.obj",
+			"VisualStudioTools.cpp.obj",
+			"VisualStudioToolsBlueprintBreakpointExtension.cpp.obj",
+			"VisualStudioToolsCommandlet.cpp.obj",
+			"VisualStudioToolsCommandletBase.cpp.obj",
+			"VSServerCommandlet.cpp.obj",
+			"VSTestAdapterCommandlet.cpp.obj"
+		]
+	}
+}

@@ -1,0 +1,9 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.VisualStudioBlueprintDebuggerHelper.cpp.obj": [
+			"PerModuleInline.gen.cpp.obj",
+			"VisualStudioBlueprintDebuggerHelperModule.cpp.obj"
+		]
+	}
+}

@@ -1,0 +1,37 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "c:\\dev\\project-ironclad\\ironclad\\plugins\\visualstudiotools\\source\\visualstudiotools\\private\\blueprintassethelper.cpp",
+        "ProvidedModule": "",
+        "PCH": "c:\\dev\\project-ironclad\\ironclad\\intermediate\\build\\win64\\x64\\ironcladeditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.valexpapi.cpp20.h.pch",
+        "Includes": [
+            "c:\\dev\\project-ironclad\\ironclad\\plugins\\visualstudiotools\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\visualstudiotools\\definitions.visualstudiotools.h",
+            "c:\\dev\\project-ironclad\\ironclad\\plugins\\visualstudiotools\\source\\visualstudiotools\\private\\blueprintassethelpers.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\coreuobject\\public\\uobject\\noexporttypes.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\coreuobject\\public\\uobject\\propertyaccessutil.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\coreuobject\\uht\\propertyaccessutil.generated.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\coreuobject\\public\\serialization\\testundeclaredscriptstructobjectreferences.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\coreuobject\\uht\\testundeclaredscriptstructobjectreferences.generated.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\core\\public\\math\\unitconversion.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\core\\public\\math\\unitconversion.inl",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\core\\public\\internationalization\\polyglottextdata.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\assetregistry\\public\\assetregistry\\assetregistrymodule.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\assetregistry\\public\\assetregistry\\iassetregistry.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\coreuobject\\public\\misc\\assetregistryinterface.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\assetregistry\\uht\\iassetregistry.generated.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\engine\\classes\\engine\\streamablemanager.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\experimental\\iostore\\ondemandcore\\public\\io\\iostoreondemand.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\experimental\\iostore\\ondemandcore\\public\\io\\ondemanderror.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\core\\public\\experimental\\unifiederror\\coreerrortypes.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\experimental\\iostore\\ondemandcore\\public\\io\\ondemandhostgroup.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\experimental\\iostore\\ondemandcore\\public\\io\\ondemandtoc.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\core\\public\\io\\iocontainerid.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\coreuobject\\public\\misc\\packageaccesstracking.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\core\\public\\misc\\sourcelocationutils.h",
+            "c:\\program files\\epic games\\ue_5.7\\engine\\source\\runtime\\engine\\classes\\engine\\experimental\\streamablemanagererror.h",
+            "c:\\dev\\project-ironclad\\ironclad\\plugins\\visualstudiotools\\source\\visualstudiotools\\public\\visualstudiotools.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}
