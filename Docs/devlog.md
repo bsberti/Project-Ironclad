@@ -106,6 +106,52 @@ applicable.
 -   Configure .gitignore and Git LFS
 -   Begin Phase 1: Foundation
 
+## \[2026-01-10\] -- Phase 1: Foundation
+
+### Session Goals
+
+-   Establish base character architecture in C++
+-   Replace template behavior with Ironclad character classes
+-   Restore full player control (move, look, jump) using Enhanced Input
+-   Integrate a character mesh and animations for a presentable third-person prototype
+
+### Work Completed
+
+-   Created 'AIroncladCharacterBase' as the foundational gameplay character class
+-   Implemented third-person camera components in the base class (SpringArm + FollowCamera)
+-   Created 'AIroncladPlayerCharacter' deriving from the base class
+-   Wired Enhanced Input in C++ for movement, camera look, and jump
+-   Created/updated 'BP_IroncladPlayerCharacter' to assign input assets and character mesh/animation setup
+-   Set Default Pawn Class in Maps & Modes to the Blueprint player and verified PIE control
+
+### Technical Notes
+
+-   Input architecture follows a “C++ behavior, Blueprint data” pattern:
+    -   C++ binds actions and applies mapping contexts
+    -   Blueprint assigns Mapping Context and Input Actions (including selecting the correct look action asset)
+-   Camera system is centralized in 'AIroncladCharacterBase' to ensure consistent third-person behavior across derived characters
+-   Template input assets were reused rather than recreated to preserve known-good mappings
+
+### Problems Encountered
+
+-   Visual Studio showed persistent IntelliSense errors despite successful Unreal/UBT builds
+-   Player pawn spawned successfully but initially had no movement/camera control after replacing the template character
+-   Mouse look did not work until the correct input action asset was assigned
+
+### Solutions / Decisions
+
+-   Treated IntelliSense-only errors as non-blocking once UBT builds succeeded; filtered to Build errors for signal clarity
+-   Implemented Enhanced Input binding in 'AIroncladPlayerCharacter' and assigned assets through Blueprint defaults
+-   Standardized third-person camera by adding SpringArm + FollowCamera to 'AIroncladCharacterBase'
+-   Reused template Mapping Context and Input Actions; selected 'IA_MouseLook' for mouse camera control
+
+### Next Actions
+
+-   Clean up duplicate/unused input assets (if any) to reduce confusion
+-   Begin combat input scaffolding:
+    -   Add Input Actions for light/heavy attack, dodge, lock-on
+    -   Introduce combat state handling and camera behavior adjustments for “God of War” style presentation
+
 ------------------------------------------------------------------------
 
 # Best Practices
