@@ -24,7 +24,12 @@ public class Ironclad : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {
-			"Ironclad",
+            "Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"EnhancedInput",
+            "Ironclad",
 			"Ironclad/Variant_Platforming",
 			"Ironclad/Variant_Platforming/Animation",
 			"Ironclad/Variant_Combat",
