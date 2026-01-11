@@ -1,5 +1,5 @@
 #include "IroncladPlayerCharacter.h"
-
+#include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerController.h"
@@ -22,6 +22,7 @@ void AIroncladPlayerCharacter::BeginPlay()
                 LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
             {
                 if (DefaultMappingContext) {
+                    UE_LOG(LogTemp, Warning, TEXT("Adding IMC: %s"), *DefaultMappingContext->GetName());
                     Subsystem->AddMappingContext(DefaultMappingContext, 0);
                 }
                 else {
@@ -50,6 +51,7 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
 	}
 
     if (LookAction) {
+        UE_LOG(LogTemp, Warning, TEXT("Binding LookAction: %s"), *LookAction->GetName());
         EnhancedInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &AIroncladPlayerCharacter::Look);
     }
     else {
@@ -81,6 +83,7 @@ void AIroncladPlayerCharacter::Move(const FInputActionValue& Value)
 void AIroncladPlayerCharacter::Look(const FInputActionValue& Value)
 {
     const FVector2D LookValue = Value.Get<FVector2D>();
+    UE_LOG(LogTemp, Warning, TEXT("Look() X=%f Y=%f (Pawn=%s)"), LookValue.X, LookValue.Y, *GetName());
 
     AddControllerYawInput(LookValue.X);
     AddControllerPitchInput(LookValue.Y);
