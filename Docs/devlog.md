@@ -148,9 +148,38 @@ applicable.
 ### Next Actions
 
 -   Clean up duplicate/unused input assets (if any) to reduce confusion
--   Begin combat input scaffolding:
-    -   Add Input Actions for light/heavy attack, dodge, lock-on
-    -   Introduce combat state handling and camera behavior adjustments for “God of War” style presentation
+
+## \[2026-01-11\] — Phase 1 Foundation - Input Asset Cleanup & Standardization
+
+### Session Goals 
+Establish a deterministic, maintainable input pipeline using Enhanced Input, removing reliance on template assets and eliminating conflicting mapping sources.
+
+### Work Completed
+
+- Created project-owned input assets ('IMC_Ironclad_Gameplay', 'IA_Ironclad_*') and migrated all bindings.
+- Centralized mapping context application in 'AIroncladPlayerCharacter' (C++) to make the pawn the single authority.
+- Cleared template PlayerController mapping contexts to prevent duplicate/overriding input sources.
+- Resolved 'AddMappingContext(nullptr)' warnings by removing empty controller array entries.
+- Updated dependent blueprints (including early combat-related assets) to reference Ironclad input assets.
+- Validated C++ bindings for Move, Look, and Jump; confirmed camera control and movement behavior across maps.
+
+### Technical Notes
+
+- Enhanced Input is now deterministic: one IMC, one owner (the pawn), explicit bindings.
+- This structure supports future layering (combat/UI/debug contexts) without reintroducing template conflicts.
+
+### Problems Encountered
+
+- None
+
+### Solutions / Decisions
+
+- Input system is standardized, predictable, and portfolio-clean. Ready for combat input expansion without hidden template dependencies.
+
+### Next Actions
+
+- Proceed to base chracter architeture that will support combat, AI, and abilities later without refactors.
+
 
 ------------------------------------------------------------------------
 
