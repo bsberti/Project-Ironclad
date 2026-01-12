@@ -10,6 +10,10 @@
 
 #include "Camera/CameraComponent.h"
 
+#include "Engine/DamageEvents.h"
+
+#include "Components/IroncladVitalsComponent.h"
+
 AIroncladPlayerCharacter::AIroncladPlayerCharacter()
 {
     // Disable use of controller rotation directly on the character
@@ -103,6 +107,29 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
     } else {
 		UE_LOG(LogTemp, Warning, TEXT("JumpAction is not set on %s"), *GetName());
 	}
+
+    if (DebugDamageAction)
+    {
+        EnhancedInput->BindAction(DebugDamageAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::DebugApplyDamage);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("DebugDamageAction is not set on %s"), *GetName());
+    }
+}
+
+void AIroncladPlayerCharacter::DebugApplyDamage()
+{
+    // Apply damage via character TakeDamage pipeline
+    UE_LOG(LogTemp, Warning, TEXT("DebugApplyDamage: Calling TakeDamage(25)"));
+    TakeDamage(25.f, FDamageEvent(), GetController(), this);
+
+    // Optional: Spend stamina to verify stamina path too
+    if (GetVitals())
+    {
+        const bool bSpent = SpendStamina(20.f);
+        UE_LOG(LogTemp, Warning, TEXT("DebugApplyDamage: SpendStamina(20) -> %s"), bSpent ? TEXT("true") : TEXT("false"));
+    }
 }
 
 void AIroncladPlayerCharacter::Move(const FInputActionValue& Value)
@@ -122,7 +149,6 @@ void AIroncladPlayerCharacter::Move(const FInputActionValue& Value)
 void AIroncladPlayerCharacter::Look(const FInputActionValue& Value)
 {
     const FVector2D LookValue = Value.Get<FVector2D>();
-    UE_LOG(LogTemp, Warning, TEXT("Look() X=%f Y=%f (Pawn=%s)"), LookValue.X, LookValue.Y, *GetName());
 
     AddControllerYawInput(LookValue.X);
     AddControllerPitchInput(LookValue.Y);

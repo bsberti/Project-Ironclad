@@ -40,6 +40,12 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     class UCameraComponent* FollowCamera;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* DebugDamageAction;
+
+    UFUNCTION()
+    void DebugApplyDamage();
+
 private:
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);
