@@ -1,33 +1,72 @@
 #include "IroncladPlayerCharacter.h"
+
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
+#include "Camera/CameraComponent.h"
 
 AIroncladPlayerCharacter::AIroncladPlayerCharacter()
 {
-    // Nothing required here yet
+    // Disable use of controller rotation directly on the character
+    bUseControllerRotationYaw = false;
+    bUseControllerRotationPitch = false;
+    bUseControllerRotationRoll = false;
+
+    // Let movement orient the character
+    GetCharacterMovement()->bOrientRotationToMovement = true;
+    GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f);
+
+    // Tune the base camera rig (declared/created in AIroncladCharacterBase)
+    if (CameraBoom) {
+        CameraBoom->TargetArmLength = 300.f;
+        CameraBoom->bUsePawnControlRotation = true;
+        CameraBoom->SocketOffset = FVector(0.f, 50.f, 60.f);
+        // Optional later: CameraBoom->bDoCollisionTest = true;
+    }
+
+    if (FollowCamera) {
+        FollowCamera->bUsePawnControlRotation = false;
+    }
 }
 
 void AIroncladPlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    // Add the mapping context to the local player subsystem
-    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC) {
+        return;
+    }
+
+    // Optional: Align camera yaw to actor yaw on start
+    PC->SetControlRotation(FRotator(0.f, GetActorRotation().Yaw, 0.f));
+
+    // Limit vertical look (cinematic pitch clamp)
+    if (PC->PlayerCameraManager)
     {
-        if (ULocalPlayer* LP = PC->GetLocalPlayer())
+        PC->PlayerCameraManager->ViewPitchMin = -45.f;
+        PC->PlayerCameraManager->ViewPitchMax = 30.f;
+    }
+
+    // Add the mapping context to the local player subsystem
+    if (ULocalPlayer* LP = PC->GetLocalPlayer())
+    {
+        if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+            LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
         {
-            if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
-                LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+            if (DefaultMappingContext) 
             {
-                if (DefaultMappingContext) {
-                    UE_LOG(LogTemp, Warning, TEXT("Adding IMC: %s"), *DefaultMappingContext->GetName());
-                    Subsystem->AddMappingContext(DefaultMappingContext, 0);
-                }
-                else {
-                    UE_LOG(LogTemp, Warning, TEXT("DefaultMappingContext is not set on %s"), *GetName());
-                }
+                UE_LOG(LogTemp, Warning, TEXT("Adding IMC: %s"), *DefaultMappingContext->GetName());
+                Subsystem->AddMappingContext(DefaultMappingContext, 0);
+            }
+            else
+            {
+                UE_LOG(LogTemp, Warning, TEXT("DefaultMappingContext is not set on %s"), *GetName());
             }
         }
     }

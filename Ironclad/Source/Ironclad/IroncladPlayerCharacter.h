@@ -32,6 +32,14 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Input")
     UInputAction* JumpAction;
 
+    /** Camera boom positioning the camera behind the character */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+    class USpringArmComponent* CameraBoom;
+
+    /** Follow camera */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+    class UCameraComponent* FollowCamera;
+
 private:
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);

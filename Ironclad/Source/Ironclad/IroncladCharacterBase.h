@@ -15,14 +15,6 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-    /** Camera boom positioning the camera behind the character */
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-    class USpringArmComponent* CameraBoom;
-
-    /** Follow camera */
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-    class UCameraComponent* FollowCamera;
-
 public:
     virtual void Tick(float DeltaTime) override;
 };
