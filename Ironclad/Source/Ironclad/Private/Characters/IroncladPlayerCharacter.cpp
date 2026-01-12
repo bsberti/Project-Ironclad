@@ -16,26 +16,28 @@
 
 AIroncladPlayerCharacter::AIroncladPlayerCharacter()
 {
-    // Disable use of controller rotation directly on the character
+    // Character does NOT rotate directly with controller; camera does.
     bUseControllerRotationYaw = false;
     bUseControllerRotationPitch = false;
     bUseControllerRotationRoll = false;
 
-    // Let movement orient the character
+    // Movement-driven facing (GoW-ish baseline)
     GetCharacterMovement()->bOrientRotationToMovement = true;
     GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f);
 
-    // Tune the base camera rig (declared/created in AIroncladCharacterBase)
-    if (CameraBoom) {
-        CameraBoom->TargetArmLength = 300.f;
-        CameraBoom->bUsePawnControlRotation = true;
-        CameraBoom->SocketOffset = FVector(0.f, 50.f, 60.f);
-        // Optional later: CameraBoom->bDoCollisionTest = true;
-    }
+    // --- Camera (player-only) ---
+    CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+    CameraBoom->SetupAttachment(RootComponent);
+    CameraBoom->TargetArmLength = 300.f;
+    CameraBoom->SocketOffset = FVector(0.f, 50.f, 60.f);
 
-    if (FollowCamera) {
-        FollowCamera->bUsePawnControlRotation = false;
-    }
+    // This is the critical line for pitch/yaw camera control
+    CameraBoom->bUsePawnControlRotation = true;
+
+    // Follow camera attached to boom
+    FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+    FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+    FollowCamera->bUsePawnControlRotation = false;
 }
 
 void AIroncladPlayerCharacter::BeginPlay()
@@ -148,7 +150,8 @@ void AIroncladPlayerCharacter::Move(const FInputActionValue& Value)
 
 void AIroncladPlayerCharacter::Look(const FInputActionValue& Value)
 {
-    const FVector2D LookValue = Value.Get<FVector2D>();
+    const FVector2D LookValue = Value.Get<FVector2D>(); 
+    UE_LOG(LogTemp, Warning, TEXT("Look X=%.3f Y=%.3f"), LookValue.X, LookValue.Y);
 
     AddControllerYawInput(LookValue.X);
     AddControllerPitchInput(LookValue.Y);
