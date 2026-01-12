@@ -152,7 +152,8 @@ applicable.
 ## \[2026-01-11\] — Phase 1 Foundation - Input Asset Cleanup & Standardization
 
 ### Session Goals 
-Establish a deterministic, maintainable input pipeline using Enhanced Input, removing reliance on template assets and eliminating conflicting mapping sources.
+
+- Establish a deterministic, maintainable input pipeline using Enhanced Input, removing reliance on template assets and eliminating conflicting mapping sources.
 
 ### Work Completed
 
@@ -180,6 +181,65 @@ Establish a deterministic, maintainable input pipeline using Enhanced Input, rem
 
 - Proceed to base chracter architeture that will support combat, AI, and abilities later without refactors.
 
+## \[2026-01-12\] — Phase 1 Foundation - Camera, Vitals and Sprint Animation
+
+### Session Goals 
+
+- Implement a God of War–style third-person camera system.
+- Build a reusable Health & Stamina system.
+- Integrate base locomotion animations using the Kwang character.
+- Establish clean architectural boundaries between gameplay systems and presentation.
+
+### Work Completed
+
+- Implemented a player-only third-person camera using a spring arm with cinematic framing.
+- Fixed camera pitch and rotation issues by properly creating camera components in the player class.
+- Built a reusable Vitals Component for Health and Stamina and attached it to the base character class.
+- Routed Unreal’s TakeDamage() pipeline into the Vitals system.
+- Implemented death handling (movement disabled at zero health).
+- Added stamina usage with sprint gating and regeneration.
+- Integrated the Kwang character from Unreal Fab as the player mesh.
+- Created and wired a sprint animation state in Kwang’s locomotion state machine.
+- Verified sprint animation playback and stamina drain in PIE.
+- Completed three core Phase 1 cards:
+    - God of War–Style Camera System
+    - Health & Stamina Systems
+    - Base Animation Setup
+
+### Technical Notes
+
+- Camera is owned exclusively by AIroncladPlayerCharacter, keeping AIroncladCharacterBase clean for enemies/NPCs.
+- Health and stamina are implemented via a dedicated UIroncladVitalsComponent, enabling reuse across all characters.
+- Damage is routed through TakeDamage() into the Vitals system.
+- Sprint consumes stamina over time and auto-stops when depleted.
+- Kwang animations are integrated via a locomotion state machine with an explicit Sprint state.
+- Gameplay state (sprint) is cleanly decoupled from animation logic.
+
+### Problems Encountered
+
+- Camera pitch initially did not respond due to improper component creation and Blueprint overrides.
+- Movement inputs behaved incorrectly due to Enhanced Input mapping misconfiguration.
+- Sprint animation did not trigger at first because Kwang’s locomotion was consolidated into a single state.
+- Difficulty locating inherited animation variables due to unfamiliarity with AnimBP class hierarchy.
+
+### Solutions / Decisions
+
+- Corrected Enhanced Input axis mappings and removed conflicting modifiers.
+- Added a dedicated Sprint state inside the locomotion state machine to explicitly handle sprint animation.
+- Used a thin gameplay-to-animation integration approach to avoid rewriting vendor animation logic.
+- Accepted current “battle-ready vs exploration” stance differences in Kwang’s animations, with a plan to address them later via gameplay modes (exploration vs combat).
+
+### Next Actions
+
+- Create the First Arena Test Level to provide a controlled environment for combat and AI testing.
+- Begin preparing for Phase 2 (Core Combat):
+    - Weapon handling
+    - Attack input
+    - Hit detection and damage application
+- Plan future animation work for:
+    - Exploration vs Combat locomotion modes
+    - Turn-in-place and lock-on systems
+    - Upper-body overlays for combat stances
 
 ------------------------------------------------------------------------
 
