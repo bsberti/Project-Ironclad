@@ -16,6 +16,9 @@ class IRONCLAD_API AIroncladPlayerCharacter : public AIroncladCharacterBase
 public:
     AIroncladPlayerCharacter();
 
+    UFUNCTION(BlueprintPure, Category = "Movement|Sprint")
+    bool IsSprinting() const { return bIsSprinting; }
+
 protected:
     virtual void BeginPlay() override;
     virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -68,7 +71,6 @@ protected:
     void StopSprint();
 
     virtual void Tick(float DeltaSeconds) override;
-
 
 private:
     void Move(const FInputActionValue& Value);
