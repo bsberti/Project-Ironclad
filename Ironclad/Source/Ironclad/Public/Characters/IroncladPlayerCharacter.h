@@ -46,6 +46,30 @@ protected:
     UFUNCTION()
     void DebugApplyDamage();
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Sprint")
+    float WalkSpeed = 450.f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Sprint")
+    float SprintSpeed = 750.f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Sprint")
+    float SprintStaminaCostPerSecond = 15.f;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement|Sprint")
+    bool bIsSprinting = false;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* SprintAction;
+
+    UFUNCTION()
+    void StartSprint();
+
+    UFUNCTION()
+    void StopSprint();
+
+    virtual void Tick(float DeltaSeconds) override;
+
+
 private:
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);

@@ -38,6 +38,10 @@ AIroncladPlayerCharacter::AIroncladPlayerCharacter()
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
     FollowCamera->bUsePawnControlRotation = false;
+
+    PrimaryActorTick.bCanEverTick = true;
+    GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+
 }
 
 void AIroncladPlayerCharacter::BeginPlay()
@@ -110,15 +114,73 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
 		UE_LOG(LogTemp, Warning, TEXT("JumpAction is not set on %s"), *GetName());
 	}
 
-    if (DebugDamageAction)
-    {
+    if (DebugDamageAction) {
         EnhancedInput->BindAction(DebugDamageAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::DebugApplyDamage);
     }
-    else
-    {
+    else {
         UE_LOG(LogTemp, Warning, TEXT("DebugDamageAction is not set on %s"), *GetName());
     }
+
+    if (SprintAction) {
+        EnhancedInput->BindAction(SprintAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::StartSprint);
+        EnhancedInput->BindAction(SprintAction, ETriggerEvent::Completed, this, &AIroncladPlayerCharacter::StopSprint);
+    }
+    else {
+        UE_LOG(LogTemp, Warning, TEXT("SprintAction is not set on %s"), *GetName());
+    }
+
 }
+
+void AIroncladPlayerCharacter::StartSprint()
+{
+    if (IsDead())
+    {
+        return;
+    }
+
+    // Must have enough stamina to start sprinting
+    if (!GetVitals() || GetVitals()->Stamina <= 0.f)
+    {
+        return;
+    }
+
+    bIsSprinting = true;
+    GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+}
+
+void AIroncladPlayerCharacter::StopSprint()
+{
+    bIsSprinting = false;
+    GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+}
+
+void AIroncladPlayerCharacter::Tick(float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+
+    if (!bIsSprinting || IsDead())
+    {
+        return;
+    }
+
+    // Only spend stamina if we're actually trying to move
+    const FVector Velocity = GetVelocity();
+    const bool bIsMoving = Velocity.SizeSquared2D() > 1.f;
+
+    if (!bIsMoving)
+    {
+        return;
+    }
+
+    const float Cost = SprintStaminaCostPerSecond * DeltaSeconds;
+
+    // If we can't spend, stop sprint
+    if (!SpendStamina(Cost))
+    {
+        StopSprint();
+    }
+}
+
 
 void AIroncladPlayerCharacter::DebugApplyDamage()
 {
