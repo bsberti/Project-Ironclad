@@ -94,12 +94,30 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Tuning")
     bool bLockPitchToTarget = false;
 
+    // Lock-on targeting filters
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Targeting")
+    float TargetSearchRadius = 2000.f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Targeting")
+    float MaxTargetAngleDegrees = 60.f; // cone around camera forward
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Targeting")
+    bool bRequireLineOfSight = true;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Targeting")
+    TSubclassOf<AActor> LockOnTargetClass; // set to your Enemy base BP/C++ class when available
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Targeting")
+    FName LockOnTargetTag = "LockOnTarget"; // fallback if class not set
+
     // ----- Internal helpers -----
     void EnableLockOn(AActor* NewTarget);
     void DisableLockOn();
     bool IsTargetValid(AActor* Target) const;
 
     AActor* FindBestLockOnTarget();
+
+    bool HasLineOfSightToTarget(const AActor* Target) const;
 
 private:
     void Move(const FInputActionValue& Value);

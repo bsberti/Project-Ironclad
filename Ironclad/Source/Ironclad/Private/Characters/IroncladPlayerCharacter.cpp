@@ -3,6 +3,7 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "DrawDebugHelpers.h"
 
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -11,10 +12,12 @@
 #include "Camera/CameraComponent.h"
 
 #include "Engine/DamageEvents.h"
+#include "Engine/World.h"
 
 #include "Components/IroncladVitalsComponent.h"
 
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 AIroncladPlayerCharacter::AIroncladPlayerCharacter()
 {
@@ -209,7 +212,6 @@ void AIroncladPlayerCharacter::EnableLockOn(AActor* NewTarget)
     UE_LOG(LogTemp, Log, TEXT("LockOn: ENABLED -> %s"), *GetNameSafe(LockedTarget));
 }
 
-
 void AIroncladPlayerCharacter::DisableLockOn()
 {
     bIsLockedOn = false;
@@ -253,11 +255,149 @@ bool AIroncladPlayerCharacter::IsTargetValid(AActor* Target) const
 
 AActor* AIroncladPlayerCharacter::FindBestLockOnTarget()
 {
-    // Step 3 will implement target acquisition.
-    // Returning nullptr keeps ToggleLockOn safe while you build acquisition logic.
-    //EnableLockOn(this);
-    return nullptr;
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        return nullptr;
+    }
+
+    // Use controller view direction as the "intent" direction for target selection
+    const FVector ViewForward = Controller
+        ? Controller->GetControlRotation().Vector()
+        : GetActorForwardVector();
+
+    const FVector Origin = GetActorLocation();
+
+    // Gather nearby actors via overlap
+    TArray<AActor*> OverlappedActors;
+
+    // Object types: Pawns are typical enemies; you can add WorldDynamic if needed.
+    TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+    ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+
+    TArray<AActor*> ActorsToIgnore;
+    ActorsToIgnore.Add(this);
+
+    const bool bHit = UKismetSystemLibrary::SphereOverlapActors(
+        World,
+        Origin,
+        TargetSearchRadius,
+        ObjectTypes,
+        LockOnTargetClass,      // if null, overlap returns any pawn; we'll filter manually too
+        ActorsToIgnore,
+        OverlappedActors
+    );
+
+    if (!bHit || OverlappedActors.Num() == 0)
+    {
+        return nullptr;
+    }
+
+    const float CosMaxAngle = FMath::Cos(FMath::DegreesToRadians(MaxTargetAngleDegrees));
+
+    AActor* BestTarget = nullptr;
+    float BestScore = -FLT_MAX;
+
+    for (AActor* Candidate : OverlappedActors)
+    {
+        if (!Candidate || Candidate == this)
+        {
+            continue;
+        }
+
+        // Manual filter if class not specified: use tag as fallback
+        if (!LockOnTargetClass)
+        {
+            if (!Candidate->ActorHasTag(LockOnTargetTag))
+            {
+                continue;
+            }
+        }
+
+        // Basic validity (distance gate handled here, not only in IsTargetValid)
+        const FVector ToCandidate = Candidate->GetActorLocation() - Origin;
+        const float DistSq = ToCandidate.SizeSquared();
+        if (DistSq < KINDA_SMALL_NUMBER || DistSq > FMath::Square(LockOnMaxDistance))
+        {
+            continue;
+        }
+
+        const FVector Dir = ToCandidate.GetSafeNormal();
+        const float CosAngle = FVector::DotProduct(ViewForward, Dir);
+
+        // Cone gate
+        if (CosAngle < CosMaxAngle)
+        {
+            continue;
+        }
+
+        // Optional line-of-sight gate
+        if (bRequireLineOfSight && !HasLineOfSightToTarget(Candidate))
+        {
+            continue;
+        }
+
+        // Score: prioritize being near center of view, then distance
+        // - CosAngle is [-1..1], higher is better.
+        // - Distance term penalizes far targets.
+        const float Dist = FMath::Sqrt(DistSq);
+        const float DistancePenalty = Dist / TargetSearchRadius; // ~0..1+
+        const float Score = (CosAngle * 2.0f) - DistancePenalty;
+
+        if (Score > BestScore)
+        {
+            BestScore = Score;
+            BestTarget = Candidate;
+        }
+    }
+
+    return BestTarget;
 }
+
+bool AIroncladPlayerCharacter::HasLineOfSightToTarget(const AActor* Target) const
+{
+    if (!Target)
+    {
+        return false;
+    }
+
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        return false;
+    }
+
+    // Start near camera/eyes; fallback to actor location + eye height.
+    FVector Start = GetActorLocation();
+    if (Controller)
+    {
+        FRotator ViewRot;
+        Controller->GetPlayerViewPoint(Start, ViewRot);
+    }
+
+    const FVector End = Target->GetActorLocation();
+
+    FHitResult Hit;
+    FCollisionQueryParams Params(SCENE_QUERY_STAT(LockOnLOS), true, this);
+    Params.AddIgnoredActor(this);
+
+    const bool bBlockingHit = World->LineTraceSingleByChannel(
+        Hit,
+        Start,
+        End,
+        ECC_Visibility,
+        Params
+    );
+
+    // If we hit nothing, or we hit the target (or something owned by it), LOS is good.
+    if (!bBlockingHit)
+    {
+        return true;
+    }
+
+    return Hit.GetActor() == Target;
+}
+
 
 void AIroncladPlayerCharacter::StartSprint()
 {
@@ -338,7 +478,6 @@ void AIroncladPlayerCharacter::Tick(float DeltaSeconds)
         }
     }
 }
-
 
 void AIroncladPlayerCharacter::DebugApplyDamage()
 {
