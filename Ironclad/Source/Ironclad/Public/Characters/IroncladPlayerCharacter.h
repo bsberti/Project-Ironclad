@@ -110,6 +110,16 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Targeting")
     FName LockOnTargetTag = "LockOnTarget"; // fallback if class not set
 
+    // Lock-on camera tuning
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Camera")
+    float LockOnArmLength = 320.f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Camera")
+    FVector LockOnSocketOffset = FVector(0.f, 60.f, 60.f); // right + up offset
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Camera")
+    float CameraInterpSpeed = 8.f;
+
     // ----- Internal helpers -----
     void EnableLockOn(AActor* NewTarget);
     void DisableLockOn();
@@ -118,6 +128,9 @@ protected:
     AActor* FindBestLockOnTarget();
 
     bool HasLineOfSightToTarget(const AActor* Target) const;
+
+    float DefaultArmLength = 0.f;
+    FVector DefaultSocketOffset = FVector::ZeroVector;
 
 private:
     void Move(const FInputActionValue& Value);

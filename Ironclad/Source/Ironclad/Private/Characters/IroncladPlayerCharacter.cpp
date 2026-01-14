@@ -53,6 +53,12 @@ void AIroncladPlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
+    if (CameraBoom)
+    {
+        DefaultArmLength = CameraBoom->TargetArmLength;
+        DefaultSocketOffset = CameraBoom->SocketOffset;
+    }
+
     APlayerController* PC = Cast<APlayerController>(GetController());
     if (!PC) {
         return;
@@ -197,8 +203,15 @@ void AIroncladPlayerCharacter::EnableLockOn(AActor* NewTarget)
         // MoveComp->RotationRate = FRotator(0.f, 720.f, 0.f);
     }
 
+    // Apply lock-on camera settings immediately (smooth in Tick)
+    if (CameraBoom)
+    {
+        CameraBoom->TargetArmLength = LockOnArmLength;
+        CameraBoom->SocketOffset = LockOnSocketOffset;
+    }
+
     // Immediately face the target on lock to avoid one-frame mismatch.
-    if (Controller)
+    /*if (Controller)
     {
         const FVector ToTarget = LockedTarget->GetActorLocation() - GetActorLocation();
         FRotator Desired = ToTarget.Rotation();
@@ -207,7 +220,7 @@ void AIroncladPlayerCharacter::EnableLockOn(AActor* NewTarget)
             Desired.Pitch = Controller->GetControlRotation().Pitch;
         }
         Controller->SetControlRotation(Desired);
-    }
+    }*/
 
     UE_LOG(LogTemp, Log, TEXT("LockOn: ENABLED -> %s"), *GetNameSafe(LockedTarget));
 }
@@ -228,11 +241,18 @@ void AIroncladPlayerCharacter::DisableLockOn()
     LockedTarget = nullptr;
 
     // Restore your foundation movement/camera behavior.
-    bUseControllerRotationYaw = false;
+    /*bUseControllerRotationYaw = false;
 
     if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
     {
         MoveComp->bOrientRotationToMovement = true;
+    }*/
+
+    // Restore camera defaults
+    if (CameraBoom)
+    {
+        CameraBoom->TargetArmLength = DefaultArmLength;
+        CameraBoom->SocketOffset = DefaultSocketOffset;
     }
 }
 
@@ -398,7 +418,6 @@ bool AIroncladPlayerCharacter::HasLineOfSightToTarget(const AActor* Target) cons
     return Hit.GetActor() == Target;
 }
 
-
 void AIroncladPlayerCharacter::StartSprint()
 {
     if (IsDead())
@@ -426,7 +445,7 @@ void AIroncladPlayerCharacter::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
 
-    if (!bIsSprinting || IsDead())
+    if (IsDead())
     {
         return;
     }
@@ -476,6 +495,18 @@ void AIroncladPlayerCharacter::Tick(float DeltaSeconds)
                 StopSprint();
             }
         }
+    }
+
+    if (CameraBoom)
+    {
+        const float TargetLength = bIsLockedOn ? LockOnArmLength : DefaultArmLength;
+        const FVector TargetOffset = bIsLockedOn ? LockOnSocketOffset : DefaultSocketOffset;
+
+        CameraBoom->TargetArmLength = FMath::FInterpTo(
+            CameraBoom->TargetArmLength, TargetLength, DeltaSeconds, CameraInterpSpeed);
+
+        CameraBoom->SocketOffset = FMath::VInterpTo(
+            CameraBoom->SocketOffset, TargetOffset, DeltaSeconds, CameraInterpSpeed);
     }
 }
 
