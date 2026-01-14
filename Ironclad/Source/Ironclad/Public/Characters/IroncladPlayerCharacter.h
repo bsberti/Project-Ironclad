@@ -64,13 +64,42 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
     class UInputAction* SprintAction;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* LockOnAction;
+
     UFUNCTION()
     void StartSprint();
+
+    UFUNCTION()
+    void ToggleLockOn();
 
     UFUNCTION()
     void StopSprint();
 
     virtual void Tick(float DeltaSeconds) override;
+    // ----- Lock-on state -----
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "LockOn")
+    bool bIsLockedOn = false;
+
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "LockOn")
+    TObjectPtr<AActor> LockedTarget = nullptr;
+
+    // ----- Tuning -----
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Tuning")
+    float LockOnRotationInterpSpeed = 12.0f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Tuning")
+    float LockOnMaxDistance = 2000.0f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Tuning")
+    bool bLockPitchToTarget = false;
+
+    // ----- Internal helpers -----
+    void EnableLockOn(AActor* NewTarget);
+    void DisableLockOn();
+    bool IsTargetValid(AActor* Target) const;
+
+    AActor* FindBestLockOnTarget();
 
 private:
     void Move(const FInputActionValue& Value);

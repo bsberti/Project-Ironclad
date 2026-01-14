@@ -14,6 +14,8 @@
 
 #include "Components/IroncladVitalsComponent.h"
 
+#include "Kismet/KismetMathLibrary.h"
+
 AIroncladPlayerCharacter::AIroncladPlayerCharacter()
 {
     // Character does NOT rotate directly with controller; camera does.
@@ -129,6 +131,132 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
         UE_LOG(LogTemp, Warning, TEXT("SprintAction is not set on %s"), *GetName());
     }
 
+    if (LockOnAction) {
+        EnhancedInput->BindAction(LockOnAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::ToggleLockOn);
+    }
+    else {
+        UE_LOG(LogTemp, Warning, TEXT("LockOnAction is not set on %s"), *GetName());
+    }
+}
+
+void AIroncladPlayerCharacter::ToggleLockOn() 
+{
+    UE_LOG(LogTemp, Warning, TEXT("ToggleLockOn fired. Pawn=%s Controller=%s"),
+        *GetNameSafe(this),
+        *GetNameSafe(Controller));
+
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(
+            -1, 2.0f, FColor::Yellow,
+            TEXT("ToggleLockOn fired")
+        );
+    }
+
+    // If currently locked, toggle off.
+    if (bIsLockedOn)
+    {
+        DisableLockOn();
+        return;
+    }
+
+    // Otherwise attempt to lock onto something.
+    AActor* Candidate = FindBestLockOnTarget(); // Step 3 will implement.
+
+    if (!Candidate)
+    {
+        // No target found -> remain unlocked. Keep this log for early testing.
+        UE_LOG(LogTemp, Verbose, TEXT("ToggleLockOn: no valid target found."));
+        return;
+    }
+
+    EnableLockOn(Candidate);
+}
+
+void AIroncladPlayerCharacter::EnableLockOn(AActor* NewTarget)
+{
+    if (!IsTargetValid(NewTarget))
+    {
+        UE_LOG(LogTemp, Verbose, TEXT("EnableLockOn: target invalid."));
+        return;
+    }
+
+    bIsLockedOn = true;
+    LockedTarget = NewTarget;
+
+    // Rotation behavior: lock-on wants character to follow controller yaw, and movement to strafe.
+    bUseControllerRotationYaw = true;
+
+    if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+    {
+        MoveComp->bOrientRotationToMovement = false;
+        // Optional: tweak rotation rate if you want snappier facing
+        // MoveComp->RotationRate = FRotator(0.f, 720.f, 0.f);
+    }
+
+    // Immediately face the target on lock to avoid one-frame mismatch.
+    if (Controller)
+    {
+        const FVector ToTarget = LockedTarget->GetActorLocation() - GetActorLocation();
+        FRotator Desired = ToTarget.Rotation();
+        if (!bLockPitchToTarget)
+        {
+            Desired.Pitch = Controller->GetControlRotation().Pitch;
+        }
+        Controller->SetControlRotation(Desired);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("LockOn: ENABLED -> %s"), *GetNameSafe(LockedTarget));
+}
+
+
+void AIroncladPlayerCharacter::DisableLockOn()
+{
+    bIsLockedOn = false;
+
+    if (LockedTarget)
+    {
+        UE_LOG(LogTemp, Log, TEXT("LockOn: DISABLED (was %s)"), *GetNameSafe(LockedTarget));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("LockOn: DISABLED"));
+    }
+
+    LockedTarget = nullptr;
+
+    // Restore your foundation movement/camera behavior.
+    bUseControllerRotationYaw = false;
+
+    if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+    {
+        MoveComp->bOrientRotationToMovement = true;
+    }
+}
+
+bool AIroncladPlayerCharacter::IsTargetValid(AActor* Target) const
+{
+    if (!Target || Target->IsPendingKillPending())
+    {
+        return false;
+    }
+
+    // Distance gate (prevents silly locks).
+    const float DistSq = FVector::DistSquared(Target->GetActorLocation(), GetActorLocation());
+    if (DistSq > FMath::Square(LockOnMaxDistance))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+AActor* AIroncladPlayerCharacter::FindBestLockOnTarget()
+{
+    // Step 3 will implement target acquisition.
+    // Returning nullptr keeps ToggleLockOn safe while you build acquisition logic.
+    //EnableLockOn(this);
+    return nullptr;
 }
 
 void AIroncladPlayerCharacter::StartSprint()
@@ -163,21 +291,51 @@ void AIroncladPlayerCharacter::Tick(float DeltaSeconds)
         return;
     }
 
-    // Only spend stamina if we're actually trying to move
-    const FVector Velocity = GetVelocity();
-    const bool bIsMoving = Velocity.SizeSquared2D() > 1.f;
-
-    if (!bIsMoving)
+    if (bIsLockedOn)
     {
-        return;
+        if (!IsTargetValid(LockedTarget))
+        {
+            DisableLockOn();
+        }
+        else if (Controller)
+        {
+            const FVector ToTarget = LockedTarget->GetActorLocation() - GetActorLocation();
+            FRotator Desired = ToTarget.Rotation();
+
+            // Preserve pitch unless you explicitly want pitch lock
+            if (!bLockPitchToTarget)
+            {
+                Desired.Pitch = Controller->GetControlRotation().Pitch;
+            }
+
+            const FRotator Current = Controller->GetControlRotation();
+            const FRotator Smoothed = FMath::RInterpTo(
+                Current,
+                Desired,
+                DeltaSeconds,
+                LockOnRotationInterpSpeed
+            );
+
+            Controller->SetControlRotation(Smoothed);
+        }
     }
 
-    const float Cost = SprintStaminaCostPerSecond * DeltaSeconds;
-
-    // If we can't spend, stop sprint
-    if (!SpendStamina(Cost))
+    if (bIsSprinting)
     {
-        StopSprint();
+        // Only spend stamina if we're actually trying to move
+        const FVector Velocity = GetVelocity();
+        const bool bIsMoving = Velocity.SizeSquared2D() > 1.f;
+
+        if (bIsMoving)
+        {
+            const float Cost = SprintStaminaCostPerSecond * DeltaSeconds;
+
+            // If we can't spend, stop sprint
+            if (!SpendStamina(Cost))
+            {
+                StopSprint();
+            }
+        }
     }
 }
 
@@ -212,8 +370,17 @@ void AIroncladPlayerCharacter::Move(const FInputActionValue& Value)
 
 void AIroncladPlayerCharacter::Look(const FInputActionValue& Value)
 {
-    const FVector2D LookValue = Value.Get<FVector2D>(); 
-    UE_LOG(LogTemp, Warning, TEXT("Look X=%.3f Y=%.3f"), LookValue.X, LookValue.Y);
+    const FVector2D LookValue = Value.Get<FVector2D>();
+
+    if (bIsLockedOn)
+    {
+        // Let Tick control yaw; optionally allow pitch adjustment.
+        if (!bLockPitchToTarget)
+        {
+            AddControllerPitchInput(LookValue.Y);
+        }
+        return;
+    }
 
     AddControllerYawInput(LookValue.X);
     AddControllerPitchInput(LookValue.Y);
