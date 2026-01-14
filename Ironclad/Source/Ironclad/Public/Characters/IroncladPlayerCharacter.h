@@ -89,7 +89,7 @@ protected:
     float LockOnRotationInterpSpeed = 12.0f;
 
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Tuning")
-    float LockOnMaxDistance = 2000.0f;
+    float LockOnMaxDistance = 1500.0f;
 
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Tuning")
     bool bLockPitchToTarget = false;
@@ -110,7 +110,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Targeting")
     FName LockOnTargetTag = "LockOnTarget"; // fallback if class not set
 
-    // Lock-on camera tuning
+    // --- Lock-on camera tuning --- 
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Camera")
     float LockOnArmLength = 320.f;
 
@@ -119,6 +119,22 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Camera")
     float CameraInterpSpeed = 8.f;
+
+    // --- Auto-unlock conditions ---
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Validation")
+    float AutoUnlockDistance = 1600.f; // can be slightly > LockOnMaxDistance
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Validation")
+    bool bAutoUnlockOnLineOfSightLost = true;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Validation", meta = (EditCondition = "bAutoUnlockOnLineOfSightLost"))
+    float LineOfSightGraceSeconds = 0.35f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Validation")
+    bool bAutoUnlockWhenOutsideCone = false;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Validation", meta = (EditCondition = "bAutoUnlockWhenOutsideCone"))
+    float OutsideConeGraceSeconds = 0.50f;
 
     // ----- Internal helpers -----
     void EnableLockOn(AActor* NewTarget);
@@ -131,6 +147,11 @@ protected:
 
     float DefaultArmLength = 0.f;
     FVector DefaultSocketOffset = FVector::ZeroVector;
+
+    float TimeWithoutLineOfSight = 0.f;
+    float TimeOutsideCone = 0.f;
+
+    bool IsLockOnStillValid(float DeltaSeconds);
 
 private:
     void Move(const FInputActionValue& Value);

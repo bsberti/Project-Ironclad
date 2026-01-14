@@ -193,6 +193,9 @@ void AIroncladPlayerCharacter::EnableLockOn(AActor* NewTarget)
     bIsLockedOn = true;
     LockedTarget = NewTarget;
 
+    TimeWithoutLineOfSight = 0.f;
+    TimeOutsideCone = 0.f;
+
     // Rotation behavior: lock-on wants character to follow controller yaw, and movement to strafe.
     bUseControllerRotationYaw = true;
 
@@ -240,6 +243,9 @@ void AIroncladPlayerCharacter::DisableLockOn()
 
     LockedTarget = nullptr;
 
+    TimeWithoutLineOfSight = 0.f;
+    TimeOutsideCone = 0.f;
+
     // Restore your foundation movement/camera behavior.
     /*bUseControllerRotationYaw = false;
 
@@ -254,6 +260,77 @@ void AIroncladPlayerCharacter::DisableLockOn()
         CameraBoom->TargetArmLength = DefaultArmLength;
         CameraBoom->SocketOffset = DefaultSocketOffset;
     }
+}
+
+bool AIroncladPlayerCharacter::IsLockOnStillValid(float DeltaSeconds)
+{
+    if (!bIsLockedOn)
+    {
+        return false;
+    }
+
+    if (!LockedTarget || LockedTarget->IsPendingKillPending())
+    {
+        return false;
+    }
+
+    // Distance validation
+    const float DistSq = FVector::DistSquared(LockedTarget->GetActorLocation(), GetActorLocation());
+    if (DistSq > FMath::Square(AutoUnlockDistance))
+    {
+        return false;
+    }
+
+    // Cone validation (optional, with grace)
+    if (bAutoUnlockWhenOutsideCone && Controller)
+    {
+        const FVector ViewForward = Controller->GetControlRotation().Vector();
+        const FVector ToTarget = (LockedTarget->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+        const float CosAngle = FVector::DotProduct(ViewForward, ToTarget);
+        const float CosMax = FMath::Cos(FMath::DegreesToRadians(MaxTargetAngleDegrees));
+
+        if (CosAngle < CosMax)
+        {
+            TimeOutsideCone += DeltaSeconds;
+            if (TimeOutsideCone >= OutsideConeGraceSeconds)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            TimeOutsideCone = 0.f;
+        }
+    }
+    else
+    {
+        TimeOutsideCone = 0.f;
+    }
+
+    // Line-of-sight validation (optional, with grace)
+    if (bAutoUnlockOnLineOfSightLost && bRequireLineOfSight)
+    {
+        const bool bHasLOS = HasLineOfSightToTarget(LockedTarget);
+        if (!bHasLOS)
+        {
+            TimeWithoutLineOfSight += DeltaSeconds;
+            if (TimeWithoutLineOfSight >= LineOfSightGraceSeconds)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            TimeWithoutLineOfSight = 0.f;
+        }
+    }
+    else
+    {
+        TimeWithoutLineOfSight = 0.f;
+    }
+
+    return true;
 }
 
 bool AIroncladPlayerCharacter::IsTargetValid(AActor* Target) const
@@ -452,7 +529,7 @@ void AIroncladPlayerCharacter::Tick(float DeltaSeconds)
 
     if (bIsLockedOn)
     {
-        if (!IsTargetValid(LockedTarget))
+        if (!IsLockOnStillValid(DeltaSeconds))
         {
             DisableLockOn();
         }
