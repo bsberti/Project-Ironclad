@@ -19,6 +19,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogIroncladLockOn, Log, All);
+
 AIroncladPlayerCharacter::AIroncladPlayerCharacter()
 {
     // Character does NOT rotate directly with controller; camera does.
@@ -146,6 +148,13 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
     else {
         UE_LOG(LogTemp, Warning, TEXT("LockOnAction is not set on %s"), *GetName());
     }
+
+    if (ToggleLockOnDebugAction) {
+        EnhancedInput->BindAction(ToggleLockOnDebugAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::ToggleLockOnDebug);
+    }
+    else {
+        UE_LOG(LogTemp, Warning, TEXT("ToggleLockOnDebugAction is not set on %s"), *GetName());
+    }
 }
 
 void AIroncladPlayerCharacter::ToggleLockOn() 
@@ -225,7 +234,7 @@ void AIroncladPlayerCharacter::EnableLockOn(AActor* NewTarget)
         Controller->SetControlRotation(Desired);
     }*/
 
-    UE_LOG(LogTemp, Log, TEXT("LockOn: ENABLED -> %s"), *GetNameSafe(LockedTarget));
+    UE_LOG(LogIroncladLockOn, Log, TEXT("LockOn: ENABLED -> %s"), *GetNameSafe(LockedTarget));
 }
 
 void AIroncladPlayerCharacter::DisableLockOn()
@@ -234,11 +243,11 @@ void AIroncladPlayerCharacter::DisableLockOn()
 
     if (LockedTarget)
     {
-        UE_LOG(LogTemp, Log, TEXT("LockOn: DISABLED (was %s)"), *GetNameSafe(LockedTarget));
+        UE_LOG(LogIroncladLockOn, Log, TEXT("LockOn: DISABLED (was %s)"), *GetNameSafe(LockedTarget));
     }
     else
     {
-        UE_LOG(LogTemp, Log, TEXT("LockOn: DISABLED"));
+        UE_LOG(LogIroncladLockOn, Log, TEXT("LockOn: DISABLED"));
     }
 
     LockedTarget = nullptr;
@@ -585,7 +594,17 @@ void AIroncladPlayerCharacter::Tick(float DeltaSeconds)
         CameraBoom->SocketOffset = FMath::VInterpTo(
             CameraBoom->SocketOffset, TargetOffset, DeltaSeconds, CameraInterpSpeed);
     }
+
+    DrawLockOnOnScreenDebug();
+    DrawLockOnWorldDebug();
 }
+
+void AIroncladPlayerCharacter::ToggleLockOnDebug()
+{
+    bDebugLockOn = !bDebugLockOn;
+    UE_LOG(LogIroncladLockOn, Log, TEXT("Debug %s"), bDebugLockOn ? TEXT("ON") : TEXT("OFF"));
+}
+
 
 void AIroncladPlayerCharacter::DebugApplyDamage()
 {
@@ -641,4 +660,131 @@ void AIroncladPlayerCharacter::StartJump()
 void AIroncladPlayerCharacter::StopJump()
 {
     StopJumping();
+}
+
+void AIroncladPlayerCharacter::DrawLockOnOnScreenDebug() const
+{
+    if (!bDebugLockOn || !bDebugPrintOnScreen || !GEngine)
+    {
+        return;
+    }
+
+    const FString TargetName = GetNameSafe(LockedTarget);
+    const FString Status = FString::Printf(
+        TEXT("LockOn: %s | Target: %s | LOS: %.2f | Cone: %.2f"),
+        bIsLockedOn ? TEXT("ON") : TEXT("OFF"),
+        bIsLockedOn ? *TargetName : TEXT("None"),
+        TimeWithoutLineOfSight,
+        TimeOutsideCone
+    );
+
+    GEngine->AddOnScreenDebugMessage(
+        (uint64)((PTRINT)this), // stable-ish key per pawn
+        0.f,                    // 0 = updated every frame
+        FColor::Cyan,
+        Status
+    );
+}
+
+void AIroncladPlayerCharacter::DrawLockOnWorldDebug() const
+{
+    if (!bDebugLockOn)
+    {
+        return;
+    }
+
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        return;
+    }
+
+    const FVector Origin = GetActorLocation();
+
+    // Search radius (acquisition)
+    if (bDebugDrawSearch)
+    {
+        DrawDebugSphere(
+            World,
+            Origin,
+            TargetSearchRadius,
+            24,
+            FColor::Green,
+            false,
+            0.f,
+            0,
+            1.5f
+        );
+
+        // View cone direction line
+        const FVector ViewForward = Controller
+            ? Controller->GetControlRotation().Vector()
+            : GetActorForwardVector();
+
+        DrawDebugLine(
+            World,
+            Origin,
+            Origin + (ViewForward * TargetSearchRadius),
+            FColor::Green,
+            false,
+            0.f,
+            0,
+            2.0f
+        );
+    }
+
+    // Current target line + LOS
+    if (bIsLockedOn && LockedTarget)
+    {
+        const FVector TargetLoc = LockedTarget->GetActorLocation();
+
+        DrawDebugLine(
+            World,
+            Origin,
+            TargetLoc,
+            FColor::Yellow,
+            false,
+            0.f,
+            0,
+            2.0f
+        );
+
+        if (bDebugDrawLOS)
+        {
+            FVector Start = Origin;
+            if (Controller)
+            {
+                FRotator ViewRot;
+                Controller->GetPlayerViewPoint(Start, ViewRot);
+            }
+            else {
+                Start = GetActorLocation() + FVector(0.f, 0.f, BaseEyeHeight);
+            }
+
+            const bool bHasLOS = HasLineOfSightToTarget(LockedTarget);
+            DrawDebugLine(
+                World,
+                Start,
+                TargetLoc,
+                bHasLOS ? FColor::Cyan : FColor::Red,
+                false,
+                0.f,
+                0,
+                2.0f
+            );
+        }
+
+        // Mark target
+        DrawDebugSphere(
+            World,
+            TargetLoc,
+            25.f,
+            12,
+            FColor::Yellow,
+            false,
+            0.f,
+            0,
+            2.0f
+        );
+    }
 }

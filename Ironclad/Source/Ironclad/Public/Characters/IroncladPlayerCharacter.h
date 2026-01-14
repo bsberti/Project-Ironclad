@@ -153,6 +153,29 @@ protected:
 
     bool IsLockOnStillValid(float DeltaSeconds);
 
+    // Debug toggles
+    UPROPERTY(EditDefaultsOnly, Category = "Input")
+    TObjectPtr<class UInputAction> ToggleLockOnDebugAction = nullptr;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Debug")
+    bool bDebugLockOn = false;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Debug")
+    bool bDebugDrawSearch = true;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Debug")
+    bool bDebugDrawLOS = true;
+
+    UPROPERTY(EditDefaultsOnly, Category = "LockOn|Debug")
+    bool bDebugPrintOnScreen = true;
+
+    // Optional: allow enabling debug via input
+    UFUNCTION()
+    void ToggleLockOnDebug();
+
+    void DrawLockOnOnScreenDebug() const;
+    void DrawLockOnWorldDebug() const;
+
 private:
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);
