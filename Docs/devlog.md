@@ -245,6 +245,38 @@ applicable.
     - Implement target acquisition + lock toggle input.
     - Add camera tracking behavior and clear release rules.
 
+## \[2026-01-14\] -- Phase 2 / Lock-On Camera System
+
+### Session Goals
+- Complete lock-on camera system.
+- Add validation, auto-unlock, and debugging tools.
+- Ensure system is stable and testable with a dummy target.
+
+### Work Completed
+- Finalized lock-on toggle, targeting, and camera framing.
+- Implemented auto-unlock rules (distance, line-of-sight with grace).
+- Added debug visualization and on-screen diagnostics.
+- Resolved input conflicts and verified behavior in arena test level.
+
+### Technical Notes
+- Target acquisition uses sphere overlap with tag-based filtering.
+- Lock-on validity centralized with timers to prevent flicker.
+- Camera behavior driven by Tick with smooth interpolation.
+- Debug tools gated behind input toggle and build-safe drawing.
+
+### Problems Encountered
+- Debug input conflicted with editor controls (F8, `/`).
+- Early Tick returns previously blocked camera updates outside sprint.
+
+### Solutions / Decisions
+- Rebound debug toggle to a non-conflicting key (`P`).
+- Restructured Tick to separate sprint logic from camera/lock-on updates.
+- Kept tag-based targets for testing; class-based enemies will replace this later.
+
+### Next Actions
+- Proceed with Phase 2 combat features (weapon system foundation).
+- Integrate lock-on with upcoming enemy base class.
+
 ------------------------------------------------------------------------
 
 # Best Practices
