@@ -277,6 +277,37 @@ applicable.
 - Proceed with Phase 2 combat features (weapon system foundation).
 - Integrate lock-on with upcoming enemy base class.
 
+## \[2026-01-15\] — Phase 2 / Core Combat
+
+### Session Goals
+- Implement a data-driven weapon foundation.
+- Spawn a default weapon and support basic weapon swapping.
+
+### Work Completed
+- Created Weapon DataAsset type for tunable combat parameters.
+- Implemented weapon actor and weapon component with equip/unequip.
+- Configured player to spawn with a default weapon from DataAsset.
+- Added minimal loadout cycling to swap between sword and axe.
+
+### Technical Notes
+- Refactored weapon actor to use a SceneComponent root so mesh offsets can be adjusted per weapon in Blueprint.
+- Attachment is socket-driven; per-weapon alignment is handled via mesh relative transforms inside the weapon actor BP.
+- Weapon swapping replaces the equipped actor cleanly, keeping the component as the single source of truth.
+
+### Problems Encountered
+- Weapon orientation was locked due to inherited root.
+- Attachment appeared incorrect after root change.
+
+### Solutions / Decisions
+- Introduced a SceneComponent root in the weapon actor to enable local mesh rotation/offset.
+- Ensured attachment targets the character’s primary skeletal mesh and validated socket usage.
+- Kept weapon definitions fully data-driven to support future tuning and additional weapons.
+
+### Next Actions
+- Begin Card 2.4: integrate weapon data with attack execution (light/heavy) via animation/montages.
+- Wire combat gate to weapon data (costs, montages) and add state exit via animation events.
+
+
 ------------------------------------------------------------------------
 
 # Best Practices
