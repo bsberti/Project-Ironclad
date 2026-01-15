@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Components/IroncladCombatGateComponent.h"
+
 #include "CoreMinimal.h"
 #include "IroncladCharacterBase.h"
 #include "InputActionValue.h"
@@ -7,6 +9,7 @@
 
 class UInputMappingContext;
 class UInputAction;
+class UIroncladCombatGateComponent;
 
 UCLASS()
 class IRONCLAD_API AIroncladPlayerCharacter : public AIroncladCharacterBase
@@ -26,6 +29,8 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Input")
     UInputMappingContext* DefaultMappingContext;
 
+	// --- Input Actions -----
+
     UPROPERTY(EditDefaultsOnly, Category = "Input")
     UInputAction* MoveAction;
 
@@ -35,16 +40,34 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Input")
     UInputAction* JumpAction;
 
-    /** Camera boom positioning the camera behind the character */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     class USpringArmComponent* CameraBoom;
 
-    /** Follow camera */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     class UCameraComponent* FollowCamera;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
     class UInputAction* DebugDamageAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* SprintAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* LockOnAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* LightAttackAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* HeavyAttackAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* DodgeAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* DebugForceIdleStateAction;
+
+    // --- Input Actions -----
 
     UFUNCTION()
     void DebugApplyDamage();
@@ -61,11 +84,8 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement|Sprint")
     bool bIsSprinting = false;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-    class UInputAction* SprintAction;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-    class UInputAction* LockOnAction;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
+    UIroncladCombatGateComponent* CombatGate;
 
     UFUNCTION()
     void StartSprint();
@@ -76,15 +96,26 @@ protected:
     UFUNCTION()
     void StopSprint();
 
+	UFUNCTION()
+	void OnLightAttackPressed();
+
+    UFUNCTION()
+    void OnHeavyAttackPressed();
+
+    UFUNCTION()
+    void OnDodgePressed();
+
+    UFUNCTION()
+	void DebugForceIdleCombatState();
+
     virtual void Tick(float DeltaSeconds) override;
-    // ----- Lock-on state -----
+    
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "LockOn")
     bool bIsLockedOn = false;
 
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "LockOn")
     TObjectPtr<AActor> LockedTarget = nullptr;
 
-    // ----- Tuning -----
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Tuning")
     float LockOnRotationInterpSpeed = 12.0f;
 
@@ -94,7 +125,6 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Tuning")
     bool bLockPitchToTarget = false;
 
-    // Lock-on targeting filters
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Targeting")
     float TargetSearchRadius = 2000.f;
 
@@ -110,7 +140,6 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Targeting")
     FName LockOnTargetTag = "LockOnTarget"; // fallback if class not set
 
-    // --- Lock-on camera tuning --- 
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Camera")
     float LockOnArmLength = 320.f;
 
@@ -120,9 +149,8 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Camera")
     float CameraInterpSpeed = 8.f;
 
-    // --- Auto-unlock conditions ---
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Validation")
-    float AutoUnlockDistance = 1600.f; // can be slightly > LockOnMaxDistance
+    float AutoUnlockDistance = 1600.f;
 
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Validation")
     bool bAutoUnlockOnLineOfSightLost = true;
@@ -169,7 +197,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Debug")
     bool bDebugPrintOnScreen = true;
 
-    // Optional: allow enabling debug via input
+    // Allow enabling debug via input
     UFUNCTION()
     void ToggleLockOnDebug();
 

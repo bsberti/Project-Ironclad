@@ -49,6 +49,7 @@ AIroncladPlayerCharacter::AIroncladPlayerCharacter()
     PrimaryActorTick.bCanEverTick = true;
     GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
+    CombatGate = CreateDefaultSubobject<UIroncladCombatGateComponent>(TEXT("CombatGate"));
 }
 
 void AIroncladPlayerCharacter::BeginPlay()
@@ -154,6 +155,67 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
     }
     else {
         UE_LOG(LogTemp, Warning, TEXT("ToggleLockOnDebugAction is not set on %s"), *GetName());
+    }
+
+    if (LightAttackAction) {
+        EnhancedInput->BindAction(LightAttackAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::OnLightAttackPressed);
+    }
+    else {
+		UE_LOG(LogTemp, Warning, TEXT("LightAttackAction is not set on %s"), *GetName());
+    }
+
+    if (DodgeAction) {
+        EnhancedInput->BindAction(DodgeAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::OnDodgePressed);
+    }
+    else {
+		UE_LOG(LogTemp, Warning, TEXT("DodgeAction is not set on %s"), *GetName());
+    }
+
+    if (HeavyAttackAction) {
+        EnhancedInput->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::OnHeavyAttackPressed);
+    }
+    else {
+		UE_LOG(LogTemp, Warning, TEXT("HeavyAttackAction is not set on %s"), *GetName());
+    }
+
+    if (DebugForceIdleStateAction) {
+        EnhancedInput->BindAction(DebugForceIdleStateAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::DebugForceIdleCombatState);
+    }
+    else {
+        UE_LOG(LogTemp, Warning, TEXT("DebugForceIdleStateAction is not set on %s"), *GetName());
+	}
+
+}
+
+void AIroncladPlayerCharacter::DebugForceIdleCombatState()
+{
+    if (CombatGate)
+    {
+        CombatGate->DebugForceIdle();
+    }
+}
+
+void AIroncladPlayerCharacter::OnLightAttackPressed()
+{
+    if (CombatGate)
+    {
+        CombatGate->RequestLightAttack();
+    }
+}
+
+void AIroncladPlayerCharacter::OnHeavyAttackPressed()
+{
+    if (CombatGate)
+    {
+        CombatGate->RequestHeavyAttack();
+    }
+}
+
+void AIroncladPlayerCharacter::OnDodgePressed()
+{
+    if (CombatGate)
+    {
+        CombatGate->RequestDodge();
     }
 }
 
@@ -605,7 +667,6 @@ void AIroncladPlayerCharacter::ToggleLockOnDebug()
     UE_LOG(LogIroncladLockOn, Log, TEXT("Debug %s"), bDebugLockOn ? TEXT("ON") : TEXT("OFF"));
 }
 
-
 void AIroncladPlayerCharacter::DebugApplyDamage()
 {
     // Apply damage via character TakeDamage pipeline
@@ -788,3 +849,4 @@ void AIroncladPlayerCharacter::DrawLockOnWorldDebug() const
         );
     }
 }
+

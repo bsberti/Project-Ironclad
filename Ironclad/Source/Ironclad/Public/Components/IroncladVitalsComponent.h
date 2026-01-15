@@ -61,6 +61,9 @@ public:
     UFUNCTION(BlueprintPure, Category = "Vitals")
     float GetStaminaNormalized() const;
 
+    UFUNCTION(BlueprintPure)
+    bool CanSpendStamina(float Amount) const;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;

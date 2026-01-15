@@ -10,8 +10,6 @@ UIroncladVitalsComponent::UIroncladVitalsComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
-
-// Called when the game starts
 void UIroncladVitalsComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -23,8 +21,6 @@ void UIroncladVitalsComponent::BeginPlay()
 	BroadcastStamina();	
 }
 
-
-// Called every frame
 void UIroncladVitalsComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -93,29 +89,32 @@ bool UIroncladVitalsComponent::Heal(float Amount)
     return false;
 }
 
+bool UIroncladVitalsComponent::CanSpendStamina(float Amount) const
+{
+    return (!bIsDead && Amount > 0.f && Stamina >= Amount);
+}
 
 bool UIroncladVitalsComponent::SpendStamina(float Amount)
 {
-    if (bIsDead || Amount <= 0.f)
+    if (CanSpendStamina(Amount))
+    {
+        const float Old = Stamina;
+        Stamina = FMath::Clamp(Stamina - Amount, 0.f, MaxStamina);
+        TimeSinceStaminaSpend = 0.f;
+
+		UE_LOG(LogTemp, Log, TEXT("SpendStamina: Spent %f stamina, now at %f/%f"), Amount, Stamina, MaxStamina);
+
+        if (!FMath::IsNearlyEqual(Old, Stamina))
+        {
+            BroadcastStamina();
+        }
+
+        return true;
+    }
+    else
     {
         return false;
     }
-
-    if (Stamina < Amount)
-    {
-        return false;
-    }
-
-    const float Old = Stamina;
-    Stamina = FMath::Clamp(Stamina - Amount, 0.f, MaxStamina);
-    TimeSinceStaminaSpend = 0.f;
-
-    if (!FMath::IsNearlyEqual(Old, Stamina))
-    {
-        BroadcastStamina();
-    }
-
-    return true;
 }
 
 float UIroncladVitalsComponent::GetHealthNormalized() const
