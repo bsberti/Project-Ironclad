@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Components/IroncladCombatGateComponent.h"
+#include "Components/IroncladWeaponComponent.h"
 
 #include "CoreMinimal.h"
 #include "IroncladCharacterBase.h"
@@ -9,7 +10,9 @@
 
 class UInputMappingContext;
 class UInputAction;
-class UIroncladCombatGateComponent;
+class UIroncladCombatGateComponent; 
+class UIroncladWeaponComponent;
+
 
 UCLASS()
 class IRONCLAD_API AIroncladPlayerCharacter : public AIroncladCharacterBase
@@ -67,6 +70,9 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
     class UInputAction* DebugForceIdleStateAction;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* ChangeWeaponAction;
+
     // --- Input Actions -----
 
     UFUNCTION()
@@ -107,6 +113,9 @@ protected:
 
     UFUNCTION()
 	void DebugForceIdleCombatState();
+
+    UFUNCTION()
+    void CycleWeapon();
 
     virtual void Tick(float DeltaSeconds) override;
     
@@ -163,6 +172,9 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Validation", meta = (EditCondition = "bAutoUnlockWhenOutsideCone"))
     float OutsideConeGraceSeconds = 0.50f;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+    UIroncladWeaponComponent* WeaponComponent;
 
     // ----- Internal helpers -----
     void EnableLockOn(AActor* NewTarget);

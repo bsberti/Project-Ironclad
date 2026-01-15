@@ -50,6 +50,8 @@ AIroncladPlayerCharacter::AIroncladPlayerCharacter()
     GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
     CombatGate = CreateDefaultSubobject<UIroncladCombatGateComponent>(TEXT("CombatGate"));
+
+    WeaponComponent = CreateDefaultSubobject<UIroncladWeaponComponent>(TEXT("WeaponComponent"));
 }
 
 void AIroncladPlayerCharacter::BeginPlay()
@@ -185,6 +187,20 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
         UE_LOG(LogTemp, Warning, TEXT("DebugForceIdleStateAction is not set on %s"), *GetName());
 	}
 
+    if (ChangeWeaponAction) {
+        EnhancedInput->BindAction(ChangeWeaponAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::CycleWeapon);
+    }
+    else {
+        UE_LOG(LogTemp, Warning, TEXT("ChangeWeaponAction is not set on %s"), *GetName());
+    }
+}
+
+void AIroncladPlayerCharacter::CycleWeapon()
+{
+    if (WeaponComponent)
+    {
+        WeaponComponent->CycleWeapon();
+    }
 }
 
 void AIroncladPlayerCharacter::DebugForceIdleCombatState()
