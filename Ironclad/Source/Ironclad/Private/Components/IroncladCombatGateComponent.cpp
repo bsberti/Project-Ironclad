@@ -45,9 +45,21 @@ bool UIroncladCombatGateComponent::RequestDodge()
     return TryAcceptAction(ECombatAction::Dodge, DodgeStaminaCost, ECombatState::Dodging, TEXT("Dodge"));
 }
 
-void UIroncladCombatGateComponent::SetCombatState(ECombatState NewState)
+void UIroncladCombatGateComponent::SetCombatState(ECombatState NewState, FName DebugLabel)
 {
+    const ECombatState FromState = CombatState;
+
+    if (FromState == NewState) {
+        return;
+    }
+
     CombatState = NewState;
+
+#if !UE_BUILD_SHIPPING
+	DebugAccept(*DebugLabel.ToString(), ECombatAction::LightAttack, FromState, CombatState);
+#endif
+
+    OnCombatStateChanged.Broadcast(FromState, CombatState);
 }
 
 bool UIroncladCombatGateComponent::TryAcceptAction(ECombatAction Action, float StaminaCost, ECombatState StateToEnter, const TCHAR* DebugLabel)

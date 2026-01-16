@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Components/IroncladVitalsComponent.h"
-
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Components/IroncladVitalsComponent.h"
 #include "IroncladCombatGateComponent.generated.h"
 
 UENUM(BlueprintType)
@@ -37,7 +36,8 @@ struct FCombatActionRequest
     float Timestamp = 0.f;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCombatActionAccepted, ECombatAction, Action, ECombatState, NewState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCombatActionAccepted, ECombatAction, Action, ECombatState, NewState); 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCombatStateChanged, ECombatState, FromState, ECombatState, ToState);
 
 UCLASS(ClassGroup = (Ironclad), meta = (BlueprintSpawnableComponent))
 class IRONCLAD_API UIroncladCombatGateComponent : public UActorComponent
@@ -59,7 +59,7 @@ public:
 
     // State controls (called by “executor” later: montages / anim notifies)
     UFUNCTION(BlueprintCallable)
-    void SetCombatState(ECombatState NewState);
+    void SetCombatState(ECombatState NewState, FName DebugLabel = NAME_None);
 
     UFUNCTION(BlueprintPure)
     ECombatState GetCombatState() const { return CombatState; }
@@ -70,6 +70,9 @@ public:
     // Lightweight event hook for next cards
     UPROPERTY(BlueprintAssignable)
     FOnCombatActionAccepted OnCombatActionAccepted;
+
+    UPROPERTY(BlueprintAssignable)
+    FOnCombatStateChanged OnCombatStateChanged;
 
     // Tuning
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Costs")
@@ -97,7 +100,8 @@ private:
 
     float LastAcceptedTime = -FLT_MAX;
 
-    bool TryAcceptAction(ECombatAction Action, float StaminaCost, ECombatState StateToEnter, const TCHAR* DebugLabel);
+    // Cost + Rules
+    bool TryAcceptAction(ECombatAction Action, float StaminaCost, ECombatState StateToEnter, const TCHAR* DebugLabel); public:
 
     bool IsActionAllowedByState(ECombatAction Action) const;
     bool HasSufficientStamina(float Cost) const;

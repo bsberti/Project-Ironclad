@@ -3,6 +3,8 @@
 #include "Components/IroncladCombatGateComponent.h"
 #include "Components/IroncladWeaponComponent.h"
 
+#include "Animation/AnimMontage.h"
+
 #include "CoreMinimal.h"
 #include "IroncladCharacterBase.h"
 #include "InputActionValue.h"
@@ -24,6 +26,9 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Movement|Sprint")
     bool IsSprinting() const { return bIsSprinting; }
+
+    // Hit window toggles (stubbed for now)
+    void SetHitWindowActive(bool bActive);
 
 protected:
     virtual void BeginPlay() override;
@@ -92,6 +97,20 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
     UIroncladCombatGateComponent* CombatGate;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Combat|Light Attack")
+    TObjectPtr<UAnimMontage> LightAttackMontage = nullptr;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Combat|Light Attack")
+    float LightAttackPlayRate = 1.0f;
+
+    // Recovery duration after montage completes (seconds)
+    UPROPERTY(EditDefaultsOnly, Category = "Combat|Light Attack")
+    float LightAttackRecoverySeconds = 0.35f;
+
+    // Optional: if you want to auto-return to locomotion even when montage blends out
+    UPROPERTY(EditDefaultsOnly, Category = "Combat|Light Attack")
+    bool bReturnToIdleOnBlendOut = true;
 
     UFUNCTION()
     void StartSprint();
@@ -222,4 +241,19 @@ private:
 
     void StartJump();
     void StopJump();
+
+    UFUNCTION()
+    void OnLightAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+    UFUNCTION()
+    void OnLightAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
+
+    // Recovery timer handle
+    FTimerHandle LightAttackRecoveryTimerHandle;
+
+    void BeginLightAttackRecovery();
+    void FinishLightAttackRecovery();
+
+    // Cached flag (stub)
+    bool bIsHitWindowActive = false;
 };

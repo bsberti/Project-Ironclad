@@ -4,12 +4,16 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "DrawDebugHelpers.h"
+#include "TimerManager.h"
 
+#include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 #include "Camera/CameraComponent.h"
+
+#include "Animation/AnimInstance.h"
 
 #include "Engine/DamageEvents.h"
 #include "Engine/World.h"
@@ -215,8 +219,132 @@ void AIroncladPlayerCharacter::OnLightAttackPressed()
 {
     if (CombatGate)
     {
-        CombatGate->RequestLightAttack();
+        if (CombatGate->RequestLightAttack()) {
+            if (!LightAttackMontage)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("LightAttackMontage is null. Cannot play light attack."));
+                // IMPORTANT: decide policy: if montage missing, exit Attacking cleanly.
+                BeginLightAttackRecovery(); // or return to idle directly, your call
+                return;
+            }
+
+            UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+            if (!AnimInstance)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("AnimInstance is null. Cannot play light attack montage."));
+                BeginLightAttackRecovery();
+                return;
+            }
+
+            const float Duration = PlayAnimMontage(LightAttackMontage, LightAttackPlayRate);
+            if (Duration <= 0.f)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("PlayAnimMontage failed (Duration <= 0)."));
+                BeginLightAttackRecovery();
+                return;
+            }
+
+            FOnMontageEnded EndDelegate;
+            EndDelegate.BindUObject(this, &AIroncladPlayerCharacter::OnLightAttackMontageEnded);
+            AnimInstance->Montage_SetEndDelegate(EndDelegate, LightAttackMontage);
+
+            FOnMontageBlendingOutStarted BlendOutDelegate;
+            BlendOutDelegate.BindUObject(this, &AIroncladPlayerCharacter::OnLightAttackMontageBlendingOut);
+            AnimInstance->Montage_SetBlendingOutDelegate(BlendOutDelegate, LightAttackMontage);
+
+        }
     }
+}
+
+void AIroncladPlayerCharacter::OnLightAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (Montage != LightAttackMontage) {
+        return;
+    }
+
+    // Start recovery at blend-out rather than full end
+    if (bReturnToIdleOnBlendOut)
+    {
+        BeginLightAttackRecovery();
+    }
+}
+
+void AIroncladPlayerCharacter::OnLightAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (Montage != LightAttackMontage) {
+        return;
+    }
+
+    // If you already transitioned on blend-out, avoid double-starting recovery
+    BeginLightAttackRecovery();
+}
+
+void AIroncladPlayerCharacter::BeginLightAttackRecovery()
+{
+    // Make this safe to call multiple times (BlendOut + End can both fire).
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        return;
+    }
+
+    // Clear any prior recovery timer so we don't schedule multiple exits.
+    World->GetTimerManager().ClearTimer(LightAttackRecoveryTimerHandle);
+
+    // Ensure hit window is OFF when recovery begins (defensive).
+    SetHitWindowActive(false);
+
+    if (CombatGate) {
+        CombatGate->SetCombatState(ECombatState::Recovering, FName(TEXT("LightAttack Recovery Begin")));
+    }
+
+    const float Recovery = FMath::Max(0.0f, LightAttackRecoverySeconds);
+
+    if (Recovery <= 0.0f)
+    {
+        FinishLightAttackRecovery();
+        return;
+    }
+
+    World->GetTimerManager().SetTimer(
+        LightAttackRecoveryTimerHandle,
+        this,
+        &AIroncladPlayerCharacter::FinishLightAttackRecovery,
+        Recovery,
+        false
+    );
+}
+
+void AIroncladPlayerCharacter::FinishLightAttackRecovery()
+{
+    UWorld* World = GetWorld();
+    if (World)
+    {
+        World->GetTimerManager().ClearTimer(LightAttackRecoveryTimerHandle);
+    }
+
+    if (CombatGate) {
+        CombatGate->SetCombatState(ECombatState::Idle, FName(TEXT("LightAttack Recovery End")));
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("LightAttack recovery finished -> exiting Attacking."));
+}
+
+void AIroncladPlayerCharacter::SetHitWindowActive(bool bActive)
+{
+    if (bIsHitWindowActive == bActive)
+    {
+        return; // idempotent
+    }
+
+    bIsHitWindowActive = bActive;
+
+    // Stub behavior: log only (for Card 2.4 this is sufficient)
+    UE_LOG(LogTemp, Log, TEXT("LightAttack Hit Window: %s"), bIsHitWindowActive ? TEXT("OPEN") : TEXT("CLOSED"));
+
+    // Later: this is where you enable/disable your weapon trace / hit detection component
+    // Example:
+    // if (WeaponHitComponent) { WeaponHitComponent->SetEnabled(bIsHitWindowActive); }
 }
 
 void AIroncladPlayerCharacter::OnHeavyAttackPressed()
