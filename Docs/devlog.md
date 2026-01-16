@@ -307,6 +307,33 @@ applicable.
 - Begin Card 2.4: integrate weapon data with attack execution (light/heavy) via animation/montages.
 - Wire combat gate to weapon data (costs, montages) and add state exit via animation events.
 
+## \[2026-01-16\] — Phase 2 / Core Combat
+
+### Session Goals
+- Complete Card 2.4: animation-driven light attack with proper state exit.
+
+### Work Completed
+- Light attack montage playback integrated into the combat flow.
+- Hit window implemented via NotifyState with open/close callbacks.
+- Attacking state now exits automatically on montage blend-out/end.
+- Recovery timer returns the character to Idle without player input.
+
+### Technical Notes
+- Added a no-cost state transition path for system-driven changes (distinct from action acceptance).
+- Recovery is idempotent to handle both blend-out and montage end safely.
+
+### Problems Encountered
+- Linker errors due to missing/mismatched state transition symbols.
+- Core type resolution issues when using `TCHAR` in component interfaces.
+
+### Solutions / Decisions
+- Implemented a dedicated state setter for montage/system transitions.
+- Replaced `TCHAR*` debug labels with `FName` for robustness and cleaner headers.
+
+### Next Actions
+- Begin Card 2.5: combo/chain support (light → light), using montage windows for input buffering.
+
+
 
 ------------------------------------------------------------------------
 
