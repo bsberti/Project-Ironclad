@@ -47,12 +47,13 @@ class IRONCLAD_API UIroncladCombatGateComponent : public UActorComponent
 public:
     UIroncladCombatGateComponent();
 
-    // Requests (called by character input or AI)
     UFUNCTION(BlueprintCallable)
-    bool RequestLightAttack();
-
-    UFUNCTION(BlueprintCallable)
-    bool RequestHeavyAttack();
+    bool RequestAction(
+        ECombatAction Action,
+        float StaminaCost,
+        ECombatState EnterState,
+        FName Reason
+    );
 
     UFUNCTION(BlueprintCallable)
     bool RequestDodge();

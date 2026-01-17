@@ -54,7 +54,7 @@ AIroncladPlayerCharacter::AIroncladPlayerCharacter()
     GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
     CombatGate = CreateDefaultSubobject<UIroncladCombatGateComponent>(TEXT("CombatGate"));
-
+	CombatTuning = CreateDefaultSubobject<UIroncladCombatTuningDataAsset>(TEXT("CombatTuning"));
     WeaponComponent = CreateDefaultSubobject<UIroncladWeaponComponent>(TEXT("WeaponComponent"));
 }
 
@@ -217,117 +217,25 @@ void AIroncladPlayerCharacter::DebugForceIdleCombatState()
 
 void AIroncladPlayerCharacter::OnLightAttackPressed()
 {
-    if (CombatGate)
-    {
-        if (CombatGate->RequestLightAttack()) {
-            if (!LightAttackMontage)
-            {
-                UE_LOG(LogTemp, Warning, TEXT("LightAttackMontage is null. Cannot play light attack."));
-                // IMPORTANT: decide policy: if montage missing, exit Attacking cleanly.
-                BeginLightAttackRecovery(); // or return to idle directly, your call
-                return;
-            }
-
-            UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
-            if (!AnimInstance)
-            {
-                UE_LOG(LogTemp, Warning, TEXT("AnimInstance is null. Cannot play light attack montage."));
-                BeginLightAttackRecovery();
-                return;
-            }
-
-            const float Duration = PlayAnimMontage(LightAttackMontage, LightAttackPlayRate);
-            if (Duration <= 0.f)
-            {
-                UE_LOG(LogTemp, Warning, TEXT("PlayAnimMontage failed (Duration <= 0)."));
-                BeginLightAttackRecovery();
-                return;
-            }
-
-            FOnMontageEnded EndDelegate;
-            EndDelegate.BindUObject(this, &AIroncladPlayerCharacter::OnLightAttackMontageEnded);
-            AnimInstance->Montage_SetEndDelegate(EndDelegate, LightAttackMontage);
-
-            FOnMontageBlendingOutStarted BlendOutDelegate;
-            BlendOutDelegate.BindUObject(this, &AIroncladPlayerCharacter::OnLightAttackMontageBlendingOut);
-            AnimInstance->Montage_SetBlendingOutDelegate(BlendOutDelegate, LightAttackMontage);
-
-        }
-    }
-}
-
-void AIroncladPlayerCharacter::OnLightAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
-{
-    if (Montage != LightAttackMontage) {
-        return;
-    }
-
-    // Start recovery at blend-out rather than full end
-    if (bReturnToIdleOnBlendOut)
-    {
-        BeginLightAttackRecovery();
-    }
-}
-
-void AIroncladPlayerCharacter::OnLightAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-    if (Montage != LightAttackMontage) {
-        return;
-    }
-
-    // If you already transitioned on blend-out, avoid double-starting recovery
-    BeginLightAttackRecovery();
-}
-
-void AIroncladPlayerCharacter::BeginLightAttackRecovery()
-{
-    // Make this safe to call multiple times (BlendOut + End can both fire).
-    UWorld* World = GetWorld();
-    if (!World)
+    if (!CombatGate || !CombatTuning || !LightAttackMontage)
     {
         return;
     }
 
-    // Clear any prior recovery timer so we don't schedule multiple exits.
-    World->GetTimerManager().ClearTimer(LightAttackRecoveryTimerHandle);
+    const float StaminaCost = CombatTuning->Light.StaminaCost;
+    const float Recovery = CombatTuning->Light.RecoverySeconds;
 
-    // Ensure hit window is OFF when recovery begins (defensive).
-    SetHitWindowActive(false);
-
-    if (CombatGate) {
-        CombatGate->SetCombatState(ECombatState::Recovering, FName(TEXT("LightAttack Recovery Begin")));
-    }
-
-    const float Recovery = FMath::Max(0.0f, LightAttackRecoverySeconds);
-
-    if (Recovery <= 0.0f)
+    if (!CombatGate->RequestAction(ECombatAction::LightAttack, StaminaCost, ECombatState::Attacking, TEXT("LightAttack)")))
     {
-        FinishLightAttackRecovery();
         return;
     }
 
-    World->GetTimerManager().SetTimer(
-        LightAttackRecoveryTimerHandle,
-        this,
-        &AIroncladPlayerCharacter::FinishLightAttackRecovery,
+    StartAttackMontage(
+        EAttackKind::Light,
+        LightAttackMontage,
         Recovery,
-        false
+        FName(TEXT("LightAttack"))
     );
-}
-
-void AIroncladPlayerCharacter::FinishLightAttackRecovery()
-{
-    UWorld* World = GetWorld();
-    if (World)
-    {
-        World->GetTimerManager().ClearTimer(LightAttackRecoveryTimerHandle);
-    }
-
-    if (CombatGate) {
-        CombatGate->SetCombatState(ECombatState::Idle, FName(TEXT("LightAttack Recovery End")));
-    }
-
-    UE_LOG(LogTemp, Log, TEXT("LightAttack recovery finished -> exiting Attacking."));
 }
 
 void AIroncladPlayerCharacter::SetHitWindowActive(bool bActive)
@@ -349,10 +257,25 @@ void AIroncladPlayerCharacter::SetHitWindowActive(bool bActive)
 
 void AIroncladPlayerCharacter::OnHeavyAttackPressed()
 {
-    if (CombatGate)
+    if (!CombatGate || !CombatTuning || !HeavyAttackMontage)
     {
-        CombatGate->RequestHeavyAttack();
+        return;
     }
+
+    const float StaminaCost = CombatTuning->Heavy.StaminaCost;
+    const float Recovery = CombatTuning->Heavy.RecoverySeconds;
+
+    if (!CombatGate->RequestAction(ECombatAction::HeavyAttack, StaminaCost, ECombatState::Attacking, TEXT("HeavyAttack)")))
+    {
+        return;
+    }
+
+    StartAttackMontage(
+        EAttackKind::Light,
+        HeavyAttackMontage,
+        Recovery,
+        FName(TEXT("HeavyAttack"))
+    );
 }
 
 void AIroncladPlayerCharacter::OnDodgePressed()
@@ -866,6 +789,179 @@ void AIroncladPlayerCharacter::StopJump()
 {
     StopJumping();
 }
+
+// ------------------------------------------
+// --- Attack Montage System ---
+// ------------------------------------------
+
+bool AIroncladPlayerCharacter::StartAttackMontage(
+    EAttackKind AttackKind,
+    UAnimMontage* Montage,
+    float RecoverySeconds,
+    FName DebugTag
+)
+{
+    if (!Montage) {
+        UE_LOG(LogTemp, Warning, TEXT("StartAttackMontage failed: Montage is null."));
+        return false;
+    }
+
+    UAnimInstance* AnimInstance = (GetMesh() ? GetMesh()->GetAnimInstance() : nullptr);
+    if (!AnimInstance) {
+        UE_LOG(LogTemp, Warning, TEXT("StartAttackMontage failed: AnimInstance is null."));
+        return false;
+    }
+
+    // Clear any pending recovery from a prior attack (defensive)
+    if (UWorld* World = GetWorld()) {
+        World->GetTimerManager().ClearTimer(AttackRecoveryTimerHandle);
+    }
+
+    // Establish the new active context
+    ActiveAttack.Reset();
+    ActiveAttack.AttackKind = AttackKind;
+    ActiveAttack.Montage = Montage;
+    ActiveAttack.RecoverySeconds = FMath::Max(0.0f, RecoverySeconds);
+    ActiveAttack.DebugTag = DebugTag;
+    ActiveAttack.bRecoveryStarted = false;
+
+    const float PlayResult = AnimInstance->Montage_Play(Montage);
+    if (PlayResult <= 0.0f)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("StartAttackMontage failed: Montage_Play returned %.2f."), PlayResult);
+        ActiveAttack.Reset();
+        return false;
+    }
+
+    // IMPORTANT:
+    // Montage delegates must be bound AFTER Montage_Play().
+    // The montage instance does not exist before play, and binding earlier
+    // will silently fail (no BlendOut / End callbacks).
+    {
+        FOnMontageBlendingOutStarted BlendOutDelegate;
+        BlendOutDelegate.BindUObject(this, &AIroncladPlayerCharacter::OnAttackMontageBlendingOut);
+        AnimInstance->Montage_SetBlendingOutDelegate(BlendOutDelegate, Montage);
+
+
+        FOnMontageEnded EndDelegate;
+        EndDelegate.BindUObject(this, &AIroncladPlayerCharacter::OnAttackMontageEnded);
+        AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
+    }
+
+    // Enter attacking state
+    if (CombatGate)
+    {
+        CombatGate->SetCombatState(ECombatState::Attacking, DebugTag);
+    }
+
+    return true;
+}
+
+void AIroncladPlayerCharacter::OnAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
+{
+    // Only react to the currently active attack montage
+    if (!ActiveAttack.IsValid() || Montage != ActiveAttack.Montage)
+    {
+        return;
+    }
+
+    // Start recovery at blend-out if desired
+    if (bReturnToIdleOnBlendOut)
+    {
+        BeginAttackRecovery();
+    }
+}
+
+void AIroncladPlayerCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (!ActiveAttack.IsValid() || Montage != ActiveAttack.Montage)
+    {
+        return;
+    }
+
+    // Safe fallback: if blend-out already started recovery, this is idempotent
+    BeginAttackRecovery();
+}
+
+void AIroncladPlayerCharacter::BeginAttackRecovery()
+{
+    if (!ActiveAttack.IsValid())
+    {
+        return;
+    }
+
+    // Prevent double-start from BlendOut + End
+    if (ActiveAttack.bRecoveryStarted)
+    {
+        return;
+    }
+    ActiveAttack.bRecoveryStarted = true;
+
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        return;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("BeginAttackRecovery: RecoverySeconds=%.3f DebugTag=%s"),
+        ActiveAttack.RecoverySeconds,
+        *ActiveAttack.DebugTag.ToString()
+    );
+
+    World->GetTimerManager().ClearTimer(AttackRecoveryTimerHandle);
+
+    // Ensure hit window is OFF when recovery begins (defensive)
+    SetHitWindowActive(false);
+
+    if (CombatGate)
+    {
+        // Use a consistent reason tag that includes what started it
+        // Keep the reason as FName to avoid TCHAR issues
+        CombatGate->SetCombatState(ECombatState::Recovering, FName(TEXT("Attack Recovery Begin")));
+    }
+
+    const float Recovery = ActiveAttack.RecoverySeconds;
+    if (Recovery <= 0.0f)
+    {
+        FinishAttackRecovery();
+        return;
+    }
+
+    World->GetTimerManager().SetTimer(
+        AttackRecoveryTimerHandle,
+        this,
+        &AIroncladPlayerCharacter::FinishAttackRecovery,
+        Recovery,
+        false
+    );
+}
+
+void AIroncladPlayerCharacter::FinishAttackRecovery()
+{
+    UE_LOG(LogTemp, Warning, TEXT("FinishAttackRecovery: setting Idle DebugTag=%s"),
+        *ActiveAttack.DebugTag.ToString()
+    );
+
+    UWorld* World = GetWorld();
+    if (World)
+    {
+        World->GetTimerManager().ClearTimer(AttackRecoveryTimerHandle);
+    }
+
+    if (CombatGate)
+    {
+        CombatGate->SetCombatState(ECombatState::Idle, FName(TEXT("Attack Recovery End")));
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Attack recovery finished -> exiting to Idle. (%s)"),
+        *ActiveAttack.DebugTag.ToString()
+    );
+
+    ActiveAttack.Reset();
+}
+
+
+
 
 void AIroncladPlayerCharacter::DrawLockOnOnScreenDebug() const
 {

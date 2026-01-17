@@ -5,6 +5,8 @@
 
 #include "Animation/AnimMontage.h"
 
+#include "../IroncladCombatTuningDataAsset.h"
+
 #include "CoreMinimal.h"
 #include "IroncladCharacterBase.h"
 #include "InputActionValue.h"
@@ -15,6 +17,46 @@ class UInputAction;
 class UIroncladCombatGateComponent; 
 class UIroncladWeaponComponent;
 
+UENUM(BlueprintType)
+enum class EAttackKind : uint8
+{
+    Light,
+    Heavy,
+    // Future: ComboStep, AbilityAttack, etc.
+};
+
+USTRUCT(BlueprintType)
+struct FAttackExecutionContext
+{
+    GENERATED_BODY()
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    EAttackKind AttackKind = EAttackKind::Light;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    TObjectPtr<UAnimMontage> Montage = nullptr;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    float RecoverySeconds = 0.0f;
+
+    // Optional, but helpful for logs / profiling / state reasons
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FName DebugTag = NAME_None;
+
+    // True once we begin recovery so BlendOut + End can't double-trigger
+    bool bRecoveryStarted = false;
+
+    void Reset()
+    {
+        AttackKind = EAttackKind::Light;
+        Montage = nullptr;
+        RecoverySeconds = 0.0f;
+        DebugTag = NAME_None;
+        bRecoveryStarted = false;
+    }
+
+    bool IsValid() const { return Montage != nullptr; }
+};
 
 UCLASS()
 class IRONCLAD_API AIroncladPlayerCharacter : public AIroncladCharacterBase
@@ -98,19 +140,41 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
     UIroncladCombatGateComponent* CombatGate;
 
+    // --- Generic attack lifecycle state ---
+    UPROPERTY(VisibleAnywhere, Category = "Combat|Attack")
+    FAttackExecutionContext ActiveAttack;
+
+    FTimerHandle AttackRecoveryTimerHandle;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Combat|Attack")
+    bool bReturnToIdleOnBlendOut = true;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Combat|Tuning")
+    TObjectPtr<UIroncladCombatTuningDataAsset> CombatTuning = nullptr;
+
+    // Generic callbacks (ONE set for all attacks)
+    UFUNCTION()
+    void OnAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
+
+    UFUNCTION()
+    void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+    void BeginAttackRecovery();
+    void FinishAttackRecovery();
+
+    // Starts any attack in a single unified way
+    bool StartAttackMontage(
+        EAttackKind AttackKind,
+        UAnimMontage* Montage,
+        float RecoverySeconds,
+        FName DebugTag
+    );
+
     UPROPERTY(EditDefaultsOnly, Category = "Combat|Light Attack")
     TObjectPtr<UAnimMontage> LightAttackMontage = nullptr;
 
-    UPROPERTY(EditDefaultsOnly, Category = "Combat|Light Attack")
-    float LightAttackPlayRate = 1.0f;
-
-    // Recovery duration after montage completes (seconds)
-    UPROPERTY(EditDefaultsOnly, Category = "Combat|Light Attack")
-    float LightAttackRecoverySeconds = 0.35f;
-
-    // Optional: if you want to auto-return to locomotion even when montage blends out
-    UPROPERTY(EditDefaultsOnly, Category = "Combat|Light Attack")
-    bool bReturnToIdleOnBlendOut = true;
+    UPROPERTY(EditDefaultsOnly, Category = "Combat|Heavy Attack")
+    TObjectPtr<UAnimMontage> HeavyAttackMontage = nullptr;
 
     UFUNCTION()
     void StartSprint();
@@ -242,17 +306,8 @@ private:
     void StartJump();
     void StopJump();
 
-    UFUNCTION()
-    void OnLightAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
-    UFUNCTION()
-    void OnLightAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
-
     // Recovery timer handle
     FTimerHandle LightAttackRecoveryTimerHandle;
-
-    void BeginLightAttackRecovery();
-    void FinishLightAttackRecovery();
 
     // Cached flag (stub)
     bool bIsHitWindowActive = false;

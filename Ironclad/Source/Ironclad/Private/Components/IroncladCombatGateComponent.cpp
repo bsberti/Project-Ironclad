@@ -30,14 +30,14 @@ void UIroncladCombatGateComponent::DebugForceIdle()
 #endif
 }
 
-bool UIroncladCombatGateComponent::RequestLightAttack()
+bool UIroncladCombatGateComponent::RequestAction(
+    ECombatAction Action,
+    float StaminaCost,
+    ECombatState EnterState,
+    FName Reason
+)
 {
-    return TryAcceptAction(ECombatAction::LightAttack, LightAttackStaminaCost, ECombatState::Attacking, TEXT("LightAttack"));
-}
-
-bool UIroncladCombatGateComponent::RequestHeavyAttack()
-{
-    return TryAcceptAction(ECombatAction::HeavyAttack, HeavyAttackStaminaCost, ECombatState::Attacking, TEXT("HeavyAttack"));
+    return TryAcceptAction(Action, StaminaCost, EnterState, *Reason.ToString());
 }
 
 bool UIroncladCombatGateComponent::RequestDodge()
@@ -48,6 +48,12 @@ bool UIroncladCombatGateComponent::RequestDodge()
 void UIroncladCombatGateComponent::SetCombatState(ECombatState NewState, FName DebugLabel)
 {
     const ECombatState FromState = CombatState;
+
+    UE_LOG(LogIroncladCombatGate, Warning, TEXT("SetCombatState CALLED: %s -> %s | Label=%s"),
+        *UEnum::GetValueAsString(CombatState),
+        *UEnum::GetValueAsString(NewState),
+        *DebugLabel.ToString()
+    );
 
     if (FromState == NewState) {
         return;
