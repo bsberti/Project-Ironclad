@@ -333,6 +333,36 @@ applicable.
 ### Next Actions
 - Begin Card 2.5: combo/chain support (light → light), using montage windows for input buffering.
 
+## \[2026-01-17\] — Phase 2 / Core Combat
+
+### Session Goals
+- Generalize attack lifecycle for Light and Heavy attacks
+- Ensure animation-driven recovery and correct combat state transitions
+
+### Work Completed
+- Implemented a shared attack execution pipeline using a unified attack context
+- Routed Light and Heavy attacks through the same montage-driven lifecycle
+- Fixed montage delegate binding order to ensure blend-out/end callbacks fire
+- Restored proper transition from Attacking → Recovering → Idle
+
+### Technical Notes
+- Montage delegates must be bound *after* Montage_Play, as the montage instance does not exist beforehand
+- AnimNotifies confirmed montage playback and animation evaluation
+- CombatGate state issues were caused by recovery never triggering, not by tuning or gate logic
+
+### Problems Encountered
+- Attack recovery never started after the first attack
+- Combat state remained stuck in Attacking, causing further inputs to be rejected
+- Montage blend-out and end callbacks were not firing
+
+### Solutions / Decisions
+- Identified delegate binding order as the root cause
+- Reordered delegate binding to occur after Montage_Play
+- Confirmed fix via logging and PIE testing
+- Locked in a unified, extensible attack lifecycle for future combo work
+
+### Next Actions
+- Implement Card 2.6 — Combo Handling (First Pass)
 
 
 ------------------------------------------------------------------------
