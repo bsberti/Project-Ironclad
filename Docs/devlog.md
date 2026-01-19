@@ -364,6 +364,38 @@ applicable.
 ### Next Actions
 - Implement Card 2.6 — Combo Handling (First Pass)
 
+## \[2026-01-19\] — Phase 2 / Core Combat
+
+### Session Goals
+- Get Card 2.6 combo chaining working end-to-end (buffering, deterministic steps, reset rules).
+- Validate animation-authored chain windows and combat-state integration.
+
+### Work Completed
+- Wired UIroncladComboComponent into the player attack input flow and verified multi-step chaining (now supports >2 steps via DataAsset).
+- Implemented/reset combo lifecycle so new attack sequences reliably restart from Step 0 after returning to Idle.
+
+### Technical Notes
+- Combo chaining is driven by UAnimNotifyState_IroncladComboWindow (authoring windows per montage controls timing deterministically).
+- Input routing split:
+    - Idle → CombatGate RequestAction (stamina + state entry) → Combo start
+    - Attacking → Combo only (avoids CombatGate rejection while already attacking)
+- Combo reset is bound to CombatGate state transitions (dynamic multicast delegate binding) to reset on Idle and interruption states.
+
+### Problems Encountered
+- Combo chain input was rejected by CombatGate while in Attacking, preventing the second press from reaching the combo system.
+- Combo step index persisted across combat sessions, preventing subsequent attacks after returning to Idle.
+- Combo debug logs were initially hidden due to Verbose logging level.
+
+### Solutions / Decisions
+- Bypassed CombatGate authorization for chain inputs while in Attacking; gate only the initial entry from Idle.
+- Reset combo when CombatGate transitions to Idle (and on Dodging/Stunned) via combat state change delegate.
+- Promoted combo logs to visible levels during bring-up to validate step transitions and window timing.
+
+### Next Actions
+- Start Card 2.7 — Dodge With Stamina Cost:
+    - Add/validate stamina charge on dodge request
+    - Ensure dodge interrupts attacks/combos deterministically (state + montage handling)
+    - Confirm recovery/lockouts and reset rules remain consistent with CombatGate authority
 
 ------------------------------------------------------------------------
 
