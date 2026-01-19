@@ -56,6 +56,7 @@ AIroncladPlayerCharacter::AIroncladPlayerCharacter()
     CombatGate = CreateDefaultSubobject<UIroncladCombatGateComponent>(TEXT("CombatGate"));
 	CombatTuning = CreateDefaultSubobject<UIroncladCombatTuningDataAsset>(TEXT("CombatTuning"));
     WeaponComponent = CreateDefaultSubobject<UIroncladWeaponComponent>(TEXT("WeaponComponent"));
+    ComboComponent = CreateDefaultSubobject<UIroncladComboComponent>(TEXT("ComboComponent"));
 }
 
 void AIroncladPlayerCharacter::BeginPlay()
@@ -217,26 +218,43 @@ void AIroncladPlayerCharacter::DebugForceIdleCombatState()
 
 void AIroncladPlayerCharacter::OnLightAttackPressed()
 {
-    if (!CombatGate || !CombatTuning || !LightAttackMontage)
+    if (!CombatGate || !CombatTuning || !ComboComponent)
     {
         return;
     }
 
     const float StaminaCost = CombatTuning->Light.StaminaCost;
-    const float Recovery = CombatTuning->Light.RecoverySeconds;
+    const ECombatState CurrentState = CombatGate->GetCombatState();
 
-    if (!CombatGate->RequestAction(ECombatAction::LightAttack, StaminaCost, ECombatState::Attacking, TEXT("LightAttack)")))
+    // Case 1: Idle -> entering combat, must gate + spend stamina
+    if (CurrentState == ECombatState::Idle)
     {
+        if (!CombatGate->RequestAction(
+            ECombatAction::LightAttack,
+            StaminaCost,
+            ECombatState::Attacking,
+            TEXT("ComboStart")
+        ))
+        {
+            return;
+        }
+
+        // Authorized entry into combat, now let combo start
+        ComboComponent->RequestAction(ECombatAction::LightAttack);
         return;
     }
 
-    StartAttackMontage(
-        EAttackKind::Light,
-        LightAttackMontage,
-        Recovery,
-        FName(TEXT("LightAttack"))
-    );
+    // Case 2: Already attacking -> this is a combo chain request
+    if (CurrentState == ECombatState::Attacking)
+    {
+        // Do NOT gate again. Do NOT spend stamina again here.
+        ComboComponent->RequestAction(ECombatAction::LightAttack);
+        return;
+    }
+
+    // Other states (Recovering, Dodging, Stunned) -> ignore for now
 }
+
 
 void AIroncladPlayerCharacter::SetHitWindowActive(bool bActive)
 {
@@ -257,25 +275,26 @@ void AIroncladPlayerCharacter::SetHitWindowActive(bool bActive)
 
 void AIroncladPlayerCharacter::OnHeavyAttackPressed()
 {
-    if (!CombatGate || !CombatTuning || !HeavyAttackMontage)
+    if (!CombatGate || !CombatTuning || !ComboComponent)
     {
         return;
     }
 
     const float StaminaCost = CombatTuning->Heavy.StaminaCost;
-    const float Recovery = CombatTuning->Heavy.RecoverySeconds;
 
-    if (!CombatGate->RequestAction(ECombatAction::HeavyAttack, StaminaCost, ECombatState::Attacking, TEXT("HeavyAttack)")))
+    // Gate decides whether we can attempt an attack now
+    if (!CombatGate->RequestAction(
+        ECombatAction::HeavyAttack,
+        StaminaCost,
+        ECombatState::Attacking,
+        TEXT("HeavyAttack")
+    ))
     {
         return;
     }
 
-    StartAttackMontage(
-        EAttackKind::Light,
-        HeavyAttackMontage,
-        Recovery,
-        FName(TEXT("HeavyAttack"))
-    );
+    // Combo decides which montage/section to play next
+    ComboComponent->RequestAction(ECombatAction::HeavyAttack);
 }
 
 void AIroncladPlayerCharacter::OnDodgePressed()
@@ -794,11 +813,26 @@ void AIroncladPlayerCharacter::StopJump()
 // --- Attack Montage System ---
 // ------------------------------------------
 
+bool AIroncladPlayerCharacter::TryStartComboAttackMontage(
+    EAttackKind AttackKind,
+    UAnimMontage* Montage,
+    float RecoverySeconds,
+    FName DebugTag,
+    FName SectionName
+)
+{
+    // Add extra combo-specific gating here if needed later.
+    // For now, just forward to the protected core implementation.
+    return StartAttackMontage(AttackKind, Montage, RecoverySeconds, DebugTag, SectionName);
+}
+
+
 bool AIroncladPlayerCharacter::StartAttackMontage(
     EAttackKind AttackKind,
     UAnimMontage* Montage,
     float RecoverySeconds,
-    FName DebugTag
+    FName DebugTag,
+    FName SectionName
 )
 {
     if (!Montage) {
@@ -831,6 +865,10 @@ bool AIroncladPlayerCharacter::StartAttackMontage(
         UE_LOG(LogTemp, Warning, TEXT("StartAttackMontage failed: Montage_Play returned %.2f."), PlayResult);
         ActiveAttack.Reset();
         return false;
+    }
+
+    if (SectionName != NAME_None) {
+        AnimInstance->Montage_JumpToSection(SectionName, Montage);
     }
 
     // IMPORTANT:
@@ -938,10 +976,6 @@ void AIroncladPlayerCharacter::BeginAttackRecovery()
 
 void AIroncladPlayerCharacter::FinishAttackRecovery()
 {
-    UE_LOG(LogTemp, Warning, TEXT("FinishAttackRecovery: setting Idle DebugTag=%s"),
-        *ActiveAttack.DebugTag.ToString()
-    );
-
     UWorld* World = GetWorld();
     if (World)
     {
@@ -959,9 +993,6 @@ void AIroncladPlayerCharacter::FinishAttackRecovery()
 
     ActiveAttack.Reset();
 }
-
-
-
 
 void AIroncladPlayerCharacter::DrawLockOnOnScreenDebug() const
 {

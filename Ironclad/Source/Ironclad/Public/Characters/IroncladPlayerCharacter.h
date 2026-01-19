@@ -2,10 +2,11 @@
 
 #include "Components/IroncladCombatGateComponent.h"
 #include "Components/IroncladWeaponComponent.h"
+#include "Components/IroncladComboComponent.h"
 
 #include "Animation/AnimMontage.h"
 
-#include "../IroncladCombatTuningDataAsset.h"
+#include "Combat/IroncladCombatTuningDataAsset.h"
 
 #include "CoreMinimal.h"
 #include "IroncladCharacterBase.h"
@@ -71,6 +72,16 @@ public:
 
     // Hit window toggles (stubbed for now)
     void SetHitWindowActive(bool bActive);
+
+    bool TryStartComboAttackMontage(
+        EAttackKind AttackKind,
+        UAnimMontage* Montage,
+        float RecoverySeconds,
+        FName DebugTag,
+        FName SectionName = NAME_None
+    );
+
+    UIroncladComboComponent* GetComboComponent() const { return ComboComponent; }
 
 protected:
     virtual void BeginPlay() override;
@@ -140,6 +151,9 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
     UIroncladCombatGateComponent* CombatGate;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Combo", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UIroncladComboComponent> ComboComponent = nullptr;
+
     // --- Generic attack lifecycle state ---
     UPROPERTY(VisibleAnywhere, Category = "Combat|Attack")
     FAttackExecutionContext ActiveAttack;
@@ -167,7 +181,8 @@ protected:
         EAttackKind AttackKind,
         UAnimMontage* Montage,
         float RecoverySeconds,
-        FName DebugTag
+        FName DebugTag,
+        FName SectionName = NAME_None
     );
 
     UPROPERTY(EditDefaultsOnly, Category = "Combat|Light Attack")
