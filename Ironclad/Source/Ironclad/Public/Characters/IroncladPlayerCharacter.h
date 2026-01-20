@@ -314,6 +314,27 @@ protected:
     void DrawLockOnOnScreenDebug() const;
     void DrawLockOnWorldDebug() const;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Dodge")
+    TObjectPtr<UAnimMontage> DodgeMontage;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Dodge")
+    float DodgeImpulseStrength = 900.f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Dodge")
+    float DodgeCooldownSeconds = 0.35f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Dodge|IFrames")
+    float IFrameStartSeconds = 0.02f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Dodge|IFrames")
+    float IFrameEndSeconds = 0.14f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Dodge")
+    float DodgeRecoverySeconds = 0.55f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Dodge")
+    float DodgePlayRate = 2.5f;
+
 private:
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);
@@ -324,6 +345,32 @@ private:
     // Recovery timer handle
     FTimerHandle LightAttackRecoveryTimerHandle;
 
+    UFUNCTION()
+    void HandleCombatActionAccepted(ECombatAction Action, ECombatState NewState);
+
+    void BeginDodge();
+    void EndDodge(const TCHAR* Reason);
+
+    FVector ComputeDodgeDirection() const;
+
+    void SetInvulnerable(bool bEnable);
+
     // Cached flag (stub)
     bool bIsHitWindowActive = false;
+
+    bool bIsInvulnerable = false;
+    float LastDodgeTime = -1000.f;
+
+    FTimerHandle Timer_IFrameOn;
+    FTimerHandle Timer_IFrameOff;
+    FTimerHandle Timer_DodgeRecovery;
+
+    FOnMontageEnded DodgeMontageEndedDelegate;
+
+    float SavedBrakingFrictionFactor = 0.f;
+    float SavedGroundFriction = 0.f;
+    float SavedBrakingDecel = 0.f;
+
+    UFUNCTION()
+    void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 };

@@ -101,6 +101,190 @@ void AIroncladPlayerCharacter::BeginPlay()
             }
         }
     }
+
+    if (CombatGate)
+    {
+        // Bind ONCE here.
+        CombatGate->OnCombatActionAccepted.AddDynamic(
+            this,
+            &AIroncladPlayerCharacter::HandleCombatActionAccepted
+        );
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[Ironclad] CombatGate not found on PlayerCharacter."));
+    }
+}
+
+void AIroncladPlayerCharacter::HandleCombatActionAccepted(ECombatAction Action, ECombatState NewState)
+{
+    if (Action == ECombatAction::Dodge && NewState == ECombatState::Dodging)
+    {
+        BeginDodge(); // you will implement this next
+    }
+}
+
+void AIroncladPlayerCharacter::BeginDodge()
+{
+    const float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
+
+    // Local cooldown (separate from gate spam protection; this is for feel/tuning)
+    if ((Now - LastDodgeTime) < DodgeCooldownSeconds)
+    {
+        // We are already in Dodging state because the gate accepted. Recover immediately.
+        EndDodge(TEXT("CooldownGuard"));
+        return;
+    }
+    LastDodgeTime = Now;
+
+    if (!DodgeMontage)
+    {
+        EndDodge(TEXT("MissingMontage"));
+        return;
+    }
+
+    // Play montage
+    const float PlayResult = PlayAnimMontage(DodgeMontage, DodgePlayRate);
+    if (PlayResult <= 0.f)
+    {
+        EndDodge(TEXT("MontagePlayFailed"));
+        return;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[Dodge] Montage=%s Length=%.3f PlayResult=%.3f"),
+        *GetNameSafe(DodgeMontage),
+        DodgeMontage->GetPlayLength(),
+        PlayResult);
+
+    // Launch impulse (montage is root-at-zero)
+    FVector DodgeDir = ComputeDodgeDirection();
+    DodgeDir.Z = 0.f;
+    DodgeDir = DodgeDir.GetSafeNormal();
+
+    if (UCharacterMovementComponent* Move = GetCharacterMovement())
+    {
+        SavedBrakingFrictionFactor = Move->BrakingFrictionFactor;
+        SavedGroundFriction = Move->GroundFriction;
+        SavedBrakingDecel = Move->BrakingDecelerationWalking;
+
+        Move->BrakingFrictionFactor = 0.f;
+        Move->GroundFriction = 0.f;
+        Move->BrakingDecelerationWalking = 0.f;
+    }
+
+    if (!DodgeDir.IsNearlyZero())
+    {
+        LaunchCharacter(DodgeDir * DodgeImpulseStrength, true, true);
+    }
+
+    // i-frame timers (first pass: time-based)
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().ClearTimer(Timer_IFrameOn);
+        World->GetTimerManager().ClearTimer(Timer_IFrameOff);
+        World->GetTimerManager().ClearTimer(Timer_DodgeRecovery);
+
+        const float Start = FMath::Max(0.f, IFrameStartSeconds);
+        const float End = FMath::Max(Start, IFrameEndSeconds);
+
+        World->GetTimerManager().SetTimer(
+            Timer_IFrameOn,
+            FTimerDelegate::CreateUObject(this, &AIroncladPlayerCharacter::SetInvulnerable, true),
+            Start,
+            false
+        );
+
+        World->GetTimerManager().SetTimer(
+            Timer_IFrameOff,
+            FTimerDelegate::CreateUObject(this, &AIroncladPlayerCharacter::SetInvulnerable, false),
+            End,
+            false
+        );
+
+        // Recovery fallback (in case montage end delegate doesn't fire)
+        const float RecoveryTime = FMath::Clamp(PlayResult * 0.98f, 0.15f, 5.0f);
+
+        World->GetTimerManager().SetTimer(
+            Timer_DodgeRecovery,
+            FTimerDelegate::CreateUObject(this, &AIroncladPlayerCharacter::EndDodge, TEXT("RecoveryTimer")),
+            RecoveryTime,
+            false
+        );
+    }
+
+    // Montage end callback (preferred exit path)
+    if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+    {
+        DodgeMontageEndedDelegate.BindUObject(this, &AIroncladPlayerCharacter::OnDodgeMontageEnded);
+        AnimInstance->Montage_SetEndDelegate(DodgeMontageEndedDelegate, DodgeMontage);
+    }
+}
+
+void AIroncladPlayerCharacter::OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    UE_LOG(LogTemp, Log, TEXT("[Dodge] MontageEnded Interrupted=%s"),
+        bInterrupted ? TEXT("true") : TEXT("false"));
+
+    // Only react to the dodge montage ending (defensive if other montages end)
+    if (Montage != DodgeMontage)
+    {
+        return;
+    }
+
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().ClearTimer(Timer_DodgeRecovery);
+    }
+
+    EndDodge(bInterrupted ? TEXT("MontageInterrupted") : TEXT("MontageEnded"));
+}
+
+void AIroncladPlayerCharacter::EndDodge(const TCHAR* Reason)
+{
+    // Safety: always clear invulnerability and timers
+    SetInvulnerable(false);
+
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().ClearTimer(Timer_IFrameOn);
+        World->GetTimerManager().ClearTimer(Timer_IFrameOff);
+        World->GetTimerManager().ClearTimer(Timer_DodgeRecovery);
+    }
+
+    if (UCharacterMovementComponent* Move = GetCharacterMovement())
+    {
+        Move->BrakingFrictionFactor = SavedBrakingFrictionFactor;
+        Move->GroundFriction = SavedGroundFriction;
+        Move->BrakingDecelerationWalking = SavedBrakingDecel;
+    }
+
+    if (CombatGate)
+    {
+        // Use whatever your “ready” state is called; adjust if not Idle.
+        CombatGate->SetCombatState(ECombatState::Idle, Reason);
+    }
+}
+
+FVector AIroncladPlayerCharacter::ComputeDodgeDirection() const
+{
+    // Prefer current velocity direction
+    const FVector Vel = GetVelocity();
+    if (Vel.SizeSquared2D() > 10.f)
+    {
+        return Vel.GetSafeNormal2D();
+    }
+
+    // Fallback: dodge backward relative to actor forward
+    return -GetActorForwardVector();
+}
+
+void AIroncladPlayerCharacter::SetInvulnerable(bool bEnable)
+{
+    bIsInvulnerable = bEnable;
+
+#if !UE_BUILD_SHIPPING
+    UE_LOG(LogTemp, Log, TEXT("[Dodge] Invulnerable: %s"), bIsInvulnerable ? TEXT("ON") : TEXT("OFF"));
+#endif
 }
 
 void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -254,7 +438,6 @@ void AIroncladPlayerCharacter::OnLightAttackPressed()
 
     // Other states (Recovering, Dodging, Stunned) -> ignore for now
 }
-
 
 void AIroncladPlayerCharacter::SetHitWindowActive(bool bActive)
 {
