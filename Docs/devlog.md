@@ -397,6 +397,36 @@ applicable.
     - Ensure dodge interrupts attacks/combos deterministically (state + montage handling)
     - Confirm recovery/lockouts and reset rules remain consistent with CombatGate authority
 
+## \[2026-01-20\] — Phase 2 / Core Combat
+
+### Session Goals
+Implement dodge as a stamina-gated combat action with invulnerability window and animation-driven execution.
+
+### Work Completed
+- Implemented Dodge action through CombatGate with stamina validation and state transition.
+- Added dodge montage playback with launch-based movement impulse.
+- Integrated full-body montage slot into AnimGraph to support dodge animation.
+- Added cooldown, recovery, and fallback safety logic.
+
+### Technical Notes
+- Dodge execution triggered via OnCombatActionAccepted delegate (action-driven, not state-driven).
+- Recovery timing derived from montage duration; fallback timer cleared on montage end.
+- Temporary braking/friction reduction used to preserve impulse distance.
+- Full-body slot inserted before IK stage to support montage blending.
+
+### Problems Encountered
+- Dodge montage playing but not visible due to missing full-body slot in AnimGraph.
+- Recovery timer ending dodge state before montage completion.
+
+### Solutions / Decisions
+- Added DefaultGroup.DefaultSlot node on final pose path in AnimGraph.
+- Switched recovery timing to montage-derived duration and prioritized montage end delegate.
+- Kept time-based i-frame window as first-pass solution (future notify-state upgrade planned).
+
+### Next Actions
+- Begin Card 2.8 — Hit Detection System
+- Define hitbox / trace strategy for weapon-based attacks
+
 ------------------------------------------------------------------------
 
 # Best Practices
