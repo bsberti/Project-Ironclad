@@ -4,6 +4,8 @@
 
 #include "Components/SceneComponent.h"
 
+#include "Combat/Damage/IroncladDamageTypes.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "IroncladWeaponActor.generated.h"
@@ -49,4 +51,10 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<UIroncladHitDetectionComponent> HitDetectionComponent = nullptr;
 
+    virtual void BeginPlay() override;
+
+    UFUNCTION()
+    void HandleWeaponHit(const FHitResult& Hit);
+
+    FIroncladDamageSpec BuildDamageSpecFromHit(const FHitResult& Hit) const;
 };

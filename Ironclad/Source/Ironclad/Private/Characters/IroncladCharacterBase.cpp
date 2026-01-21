@@ -1,5 +1,7 @@
 #include "Characters/IroncladCharacterBase.h"
 
+#include "Combat/Damage/IroncladDamageReceiverComponent.h"
+
 #include "Components/IroncladVitalsComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -8,6 +10,20 @@ AIroncladCharacterBase::AIroncladCharacterBase()
     PrimaryActorTick.bCanEverTick = true;
 
     VitalsComponent = CreateDefaultSubobject<UIroncladVitalsComponent>(TEXT("VitalsComponent"));
+    DamageReceiver = CreateDefaultSubobject<UIroncladDamageReceiverComponent>(TEXT("DamageReceiver"));
+}
+
+FIroncladDamageResult AIroncladCharacterBase::ApplyDamage_Implementation(const FIroncladDamageSpec& Spec)
+{
+    if (DamageReceiver)
+    {
+        return DamageReceiver->ApplyDamage_Implementation(Spec);
+    }
+
+    FIroncladDamageResult Result;
+    Result.bApplied = false;
+    Result.Reason = FName(TEXT("NoDamageReceiver"));
+    return Result;
 }
 
 bool AIroncladCharacterBase::ApplyDamageToVitals(float Amount)

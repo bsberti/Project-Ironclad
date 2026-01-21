@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Combat/Damage/IroncladDamageable.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "IroncladCharacterBase.generated.h"
@@ -7,12 +9,14 @@
 class UIroncladVitalsComponent;
 
 UCLASS()
-class IRONCLAD_API AIroncladCharacterBase : public ACharacter
+class IRONCLAD_API AIroncladCharacterBase : public ACharacter, public IIroncladDamageable
 {
     GENERATED_BODY()
 
 public:
     AIroncladCharacterBase();
+
+    virtual FIroncladDamageResult ApplyDamage_Implementation(const FIroncladDamageSpec& Spec) override;
 
     UFUNCTION(BlueprintCallable, Category = "Vitals")
     bool ApplyDamageToVitals(float Amount);
@@ -45,6 +49,10 @@ protected:
 
     UFUNCTION()
     void HandleDeath();
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Damage")
+    TObjectPtr<class UIroncladDamageReceiverComponent> DamageReceiver = nullptr;
+
 
 public:
     virtual void Tick(float DeltaTime) override;

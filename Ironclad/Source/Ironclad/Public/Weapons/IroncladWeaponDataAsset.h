@@ -1,5 +1,8 @@
 #pragma once
 
+#include "GameplayTagContainer.h"
+#include "Combat/Damage/IroncladDamageTypes.h"
+
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "IroncladWeaponDataAsset.generated.h"
@@ -65,4 +68,13 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Trace", meta = (ClampMin = "0"))
     float TraceRadius = 15.f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage", meta = (ClampMin = "0.0"))
+    float BaseDamage = 10.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
+    EIroncladDamageType DamageType = EIroncladDamageType::Slash;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Damage")
+    FGameplayTagContainer DamageTags; // e.g. Damage.Slash, Weapon.Sword
 };
