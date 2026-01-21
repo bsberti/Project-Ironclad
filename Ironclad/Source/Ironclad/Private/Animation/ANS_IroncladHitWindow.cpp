@@ -1,57 +1,77 @@
 #include "Animation/ANS_IroncladHitWindow.h"
 
-#include "Components/SkeletalMeshComponent.h"
+#include "Components/IroncladWeaponComponent.h"
+#include "Weapons/IroncladWeaponActor.h"
+
 #include "GameFramework/Actor.h"
+#include "Components/SkeletalMeshComponent.h"
 
-// Include your character header so we can cast and call SetHitWindowActive
-#include "Characters/IroncladPlayerCharacter.h"
-
-void UANS_IroncladHitWindow::NotifyBegin(
-    USkeletalMeshComponent* MeshComp,
-    UAnimSequenceBase* Animation,
-    float TotalDuration,
-    const FAnimNotifyEventReference& EventReference)
+void UANS_IroncladHitWindow::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration)
 {
-    Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
+	Super::NotifyBegin(MeshComp, Animation, TotalDuration);
 
-    if (!MeshComp)
-    {
-        return;
-    }
+	if (!MeshComp)
+	{
+		return;
+	}
 
-    AActor* Owner = MeshComp->GetOwner();
-    if (!Owner)
-    {
-        return;
-    }
+	AActor* Owner = MeshComp->GetOwner();
+	AIroncladWeaponActor* Weapon = GetEquippedWeapon(Owner);
+	if (!Weapon)
+	{
+		return;
+	}
 
-    // If you want this to work for both player + enemies later, consider casting to a base interface.
-    if (AIroncladPlayerCharacter* PlayerChar = Cast<AIroncladPlayerCharacter>(Owner))
-    {
-        PlayerChar->SetHitWindowActive(true);
-    }
+	UIroncladHitDetectionComponent* HitDetect = Weapon->GetHitDetectionComponent();
+	USceneComponent* TraceSource = Weapon->GetTraceSourceComponent();
+
+	if (!HitDetect || !TraceSource)
+	{
+		return;
+	}
+
+	HitDetect->BeginHitWindow(TraceSource, TraceConfig);
 }
 
-void UANS_IroncladHitWindow::NotifyEnd(
-    USkeletalMeshComponent* MeshComp,
-    UAnimSequenceBase* Animation,
-    const FAnimNotifyEventReference& EventReference)
+void UANS_IroncladHitWindow::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
 {
-    Super::NotifyEnd(MeshComp, Animation, EventReference);
+	Super::NotifyEnd(MeshComp, Animation);
 
-    if (!MeshComp)
-    {
-        return;
-    }
+	if (!MeshComp)
+	{
+		return;
+	}
 
-    AActor* Owner = MeshComp->GetOwner();
-    if (!Owner)
-    {
-        return;
-    }
+	AActor* Owner = MeshComp->GetOwner();
+	AIroncladWeaponActor* Weapon = GetEquippedWeapon(Owner);
+	if (!Weapon)
+	{
+		return;
+	}
 
-    if (AIroncladPlayerCharacter* PlayerChar = Cast<AIroncladPlayerCharacter>(Owner))
-    {
-        PlayerChar->SetHitWindowActive(false);
-    }
+	if (UIroncladHitDetectionComponent* HitDetect = Weapon->GetHitDetectionComponent())
+	{
+		HitDetect->EndHitWindow();
+	}
+}
+
+UIroncladWeaponComponent* UANS_IroncladHitWindow::FindWeaponComponent(AActor* Owner) const
+{
+	if (!Owner)
+	{
+		return nullptr;
+	}
+
+	return Owner->FindComponentByClass<UIroncladWeaponComponent>();
+}
+
+AIroncladWeaponActor* UANS_IroncladHitWindow::GetEquippedWeapon(AActor* Owner) const
+{
+	UIroncladWeaponComponent* WeaponComp = FindWeaponComponent(Owner);
+	if (!WeaponComp)
+	{
+		return nullptr;
+	}
+
+	return WeaponComp->GetEquippedWeaponActor();
 }

@@ -25,7 +25,7 @@ public:
     UFUNCTION(BlueprintPure, Category = "Weapon")
     UIroncladWeaponDataAsset* GetCurrentWeaponData() const { return CurrentWeaponData; }
 
-    UFUNCTION(BlueprintPure, Category = "Weapon")
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
     AIroncladWeaponActor* GetEquippedWeaponActor() const { return EquippedWeaponActor; }
 
     UFUNCTION(BlueprintCallable, Category = "Weapon")

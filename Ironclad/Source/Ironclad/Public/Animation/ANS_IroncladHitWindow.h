@@ -2,22 +2,24 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "Components/IroncladHitDetectionComponent.h" // for FIroncladTraceConfig
 #include "ANS_IroncladHitWindow.generated.h"
 
-UCLASS()
+UCLASS(meta = (DisplayName = "Ironclad Hit Window"))
 class IRONCLAD_API UANS_IroncladHitWindow : public UAnimNotifyState
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    virtual void NotifyBegin(
-        USkeletalMeshComponent* MeshComp,
-        UAnimSequenceBase* Animation,
-        float TotalDuration,
-        const FAnimNotifyEventReference& EventReference) override;
+	// Per-notify config (lets you tune per montage section/step).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitDetection")
+	FIroncladTraceConfig TraceConfig;
 
-    virtual void NotifyEnd(
-        USkeletalMeshComponent* MeshComp,
-        UAnimSequenceBase* Animation,
-        const FAnimNotifyEventReference& EventReference) override;
+	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration) override;
+	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
+
+private:
+	// Helpers (kept private to avoid leaking weapon/equipment assumptions elsewhere).
+	class UIroncladWeaponComponent* FindWeaponComponent(AActor* Owner) const;
+	class AIroncladWeaponActor* GetEquippedWeapon(AActor* Owner) const;
 };

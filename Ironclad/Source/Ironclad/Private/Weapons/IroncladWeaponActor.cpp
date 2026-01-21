@@ -2,6 +2,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Weapons/IroncladWeaponDataAsset.h"
+#include "Components/IroncladHitDetectionComponent.h"
 
 AIroncladWeaponActor::AIroncladWeaponActor()
 {
@@ -14,6 +15,16 @@ AIroncladWeaponActor::AIroncladWeaponActor()
     Mesh->SetupAttachment(Root);
 
     Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    HitDetectionComponent = CreateDefaultSubobject<UIroncladHitDetectionComponent>(TEXT("HitDetection"));
+}
+
+USceneComponent* AIroncladWeaponActor::GetTraceSourceComponent() const
+{
+    // The HitDetectionComponent expects a USceneComponent with sockets.
+    // For a StaticMeshComponent, sockets are supported if you created them in the asset.
+    // If you use SkeletalMeshComponent, this also works.
+    return Cast<USceneComponent>(Mesh);
 }
 
 void AIroncladWeaponActor::InitializeFromData(UIroncladWeaponDataAsset* InWeaponData)
