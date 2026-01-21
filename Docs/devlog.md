@@ -400,7 +400,7 @@ applicable.
 ## \[2026-01-20\] — Phase 2 / Core Combat
 
 ### Session Goals
-Implement dodge as a stamina-gated combat action with invulnerability window and animation-driven execution.
+- Implement dodge as a stamina-gated combat action with invulnerability window and animation-driven execution.
 
 ### Work Completed
 - Implemented Dodge action through CombatGate with stamina validation and state transition.
@@ -426,6 +426,40 @@ Implement dodge as a stamina-gated combat action with invulnerability window and
 ### Next Actions
 - Begin Card 2.8 — Hit Detection System
 - Define hitbox / trace strategy for weapon-based attacks
+
+## \[2026-01-21\] — Phase 2 / Core Combat
+
+### Session Goals
+- Finalize trace-based hit detection and validate it in gameplay
+- Implement a modular damage pipeline decoupled from hit detection
+- Create a test enemy to support damage validation and upcoming combat features
+
+### Work Completed
+- Validated trace-based hit detection with runtime hit logs and stamina interaction
+- Implemented a modular damage pipeline using FDamageSpec and IDamageable
+- Integrated damage application into weapon hit events
+- Created a dummy enemy class to validate damage flow and health reduction in PIE
+
+### Technical Notes
+- Hit detection operates strictly during animation-defined hit windows using trace sweeps
+- Damage is applied uniformly via IIroncladDamageable, ensuring player and enemies share the same contract
+- Weapon actor builds FDamageSpec from weapon data and hit context
+- Damage receiver component manages health state and logs damage for debugging
+- Source attribution and health deltas were validated through runtime logs
+
+### Problems Encountered
+- No enemy target initially existed to validate the damage pipeline
+- Unable to observe full damage flow until a proper receiver actor was in place
+
+### Solutions / Decisions
+- Introduced a minimal dummy enemy implementing IDamageable to serve as a test harness
+- Decided to keep hit detection, damage calculation, and damage application fully decoupled
+- Confirmed the damage pipeline design will support upcoming hit reactions and death logic without refactor
+
+### Next Actions
+- Add hit reactions based on damage type and hit context (Card 2.10)
+- Implement death logic and visual/audio feedback on zero health
+- Ensure GameplayTags flow from weapon data into damage specs for semantic classification
 
 ------------------------------------------------------------------------
 
