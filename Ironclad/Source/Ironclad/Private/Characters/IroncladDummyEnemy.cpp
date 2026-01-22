@@ -8,53 +8,32 @@ AIroncladDummyEnemy::AIroncladDummyEnemy()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	DamageReceiver = CreateDefaultSubobject<UIroncladDamageReceiverComponent>(TEXT("DamageReceiver"));
-	// Keep receiver logging on for now
-	DamageReceiver->bLogDamage = true;
+	// Configure the base-created receiver (do NOT create a new one here).
+	if (DamageReceiver)
+	{
+		DamageReceiver->bLogDamage = true;
+	}
 
-	// Dummy should not move (optional)
+	// Dummy should not move (test target)
 	if (UCharacterMovementComponent* Move = GetCharacterMovement())
 	{
 		Move->DisableMovement();
 	}
-}
-
-FIroncladDamageResult AIroncladDummyEnemy::ApplyDamage_Implementation(const FIroncladDamageSpec& Spec)
-{
-	UE_LOG(LogIroncladDamage, Log,
-		TEXT("[Damage] AIroncladDummyEnemy::ApplyDamage_Implementation called on %s"),
-		*GetNameSafe(this));
-
-	if (!DamageReceiver)
-	{
-		FIroncladDamageResult Result;
-		Result.bApplied = false;
-		Result.Reason = FName(TEXT("NoDamageReceiver"));
-		return Result;
-	}
-
-	FIroncladDamageResult Result = DamageReceiver->ApplyDamage_Implementation(Spec);
-
-	if (Result.bApplied && DamageReceiver->IsDead())
-	{
-		HandleDeath();
-	}
-
-	return Result;
 }
 
 void AIroncladDummyEnemy::HandleDeath()
 {
-	// Minimal “death” for test validation: stop collision and movement.
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// Always let base perform the shared "death baseline"
+	Super::HandleDeath();
 
-	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	// Dummy-specific policy (optional):
+	// - If you want the body to remain targetable by traces but not block movement, you can tune collision here.
+	// - Otherwise, keep it minimal for now.
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
 	{
-		Move->DisableMovement();
+		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
-	// Optional: ragdoll later; for now just hide or stop responding.
-	// GetMesh()->SetSimulatePhysics(true);
-
-	// You can also Destroy() after a delay for cleanup, but keeping it around is useful for debugging.
+	// Later (ragdoll card): enable mesh physics, adjust mesh collision, etc.
+	// SetLifeSpan(10.f); // optional cleanup
 }

@@ -8,6 +8,14 @@
 
 class UIroncladVitalsComponent;
 
+UENUM(BlueprintType)
+enum class EIroncladHitReactionKind : uint8
+{
+    Light UMETA(DisplayName = "Light"),
+    Heavy UMETA(DisplayName = "Heavy"),
+    Stagger UMETA(DisplayName = "Stagger")
+};
+
 UCLASS()
 class IRONCLAD_API AIroncladCharacterBase : public ACharacter, public IIroncladDamageable
 {
@@ -33,13 +41,7 @@ public:
     UFUNCTION(BlueprintPure, Category = "Vitals")
     UIroncladVitalsComponent* GetVitals() const { return VitalsComponent; }
 
-    // Route engine damage into our system
-    virtual float TakeDamage(
-        float DamageAmount,
-        struct FDamageEvent const& DamageEvent,
-        class AController* EventInstigator,
-        AActor* DamageCauser
-    ) override;
+    virtual void Tick(float DeltaTime) override;
 
 protected:
     virtual void BeginPlay() override;
@@ -47,13 +49,64 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UIroncladVitalsComponent* VitalsComponent;
 
-    UFUNCTION()
-    void HandleDeath();
+    // One-shot latch so we never run death twice.
+    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Damage")
+    bool bDeathHandled = false;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Damage")
     TObjectPtr<class UIroncladDamageReceiverComponent> DamageReceiver = nullptr;
 
+    virtual void HandleDeath();
 
-public:
-    virtual void Tick(float DeltaTime) override;
+	// Montages (assign per-character in BP defaults)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage|Reactions")
+	TObjectPtr<UAnimMontage> HitReactLightMontage = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage|Reactions")
+	TObjectPtr<UAnimMontage> HitReactHeavyMontage = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage|Reactions")
+	TObjectPtr<UAnimMontage> DeathMontage = nullptr;
+
+	// Simple gating to avoid montage spam
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage|Reactions")
+	bool bAllowReactWhileReacting = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage|Reactions", meta = (ClampMin = "0.0"))
+	float ReactionLockSeconds = 0.25f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Damage|Reactions")
+	bool bIsReacting = false;
+
+	FTimerHandle ReactionLockTimer;
+
+	// Optional stagger threshold (first pass)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage|Reactions")
+	bool bEnableStagger = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage|Reactions", meta = (ClampMin = "0.0"))
+	float StaggerDamageThreshold = 25.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage|Reactions", meta = (ClampMin = "0.0"))
+	float StaggerWindowSeconds = 1.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Damage|Reactions")
+	float AccumulatedDamageInWindow = 0.0f;
+
+	FTimerHandle StaggerWindowTimer;
+
+	// Hook already exists in your base; we will implement it
+	virtual void OnDamageApplied(const FIroncladDamageSpec& Spec, const FIroncladDamageResult& Result);
+
+	// Helpers
+	void TryPlayHitReaction(const FIroncladDamageSpec& Spec, float AppliedDamage);
+	void TryPlayDeath();
+
+	void SetReactingLocked();
+	void ClearReactingLocked();
+
+	void ResetStaggerWindow();
+
+	EIroncladHitReactionKind ClassifyReactionKind(const FIroncladDamageSpec& Spec) const;
+	UAnimMontage* SelectReactionMontage(EIroncladHitReactionKind Kind) const;
 };
