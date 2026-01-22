@@ -461,6 +461,47 @@ applicable.
 - Implement death logic and visual/audio feedback on zero health
 - Ensure GameplayTags flow from weapon data into damage specs for semantic classification
 
+## \[2026-01-22\] -- Phase 2 / Core Combat
+
+### Session Goals
+- Implement hit reactions and death logic (Card 2.10)
+- Unify damage and death flow across combat systems
+- Validate animation-driven feedback for damage and death
+
+### Work Completed
+- Implemented hit reaction system in IroncladCharacterBase using animation montages
+- Added reaction gating and first-pass stagger threshold logic
+- Implemented death handling baseline (stop movement, disable collision, play montage)
+- Refactored DamageReceiver to apply damage via VitalsComponent (single health source)
+- Ensured death detection is consistent and idempotent
+- Wired DummyEnemy to shared reaction/death logic
+- Fixed AnimBP configuration to allow montage playback
+- Configured death montage to persist final pose (“stay dead”)
+- Removed obsolete heavy attack path and montage ownership from PlayerCharacter
+
+### Technical Notes
+- Damage pipeline now flows: HitDetect → DamageSpec → DamageReceiver → Vitals → CharacterBase lifecycle
+- Reaction classification is decoupled from DamageType and driven by tags/semantics
+- Health and death are now authoritative in VitalsComponent
+- Montage playback is centralized and animation-driven
+- ComboComponent remains the sole owner of attack montage selection
+
+### Problems Encountered
+- Death logic not triggering due to split health systems (Vitals vs DamageReceiver)
+- Hit reactions initially failing due to missing AnimBP/AnimInstance
+- Death montage blending back to locomotion instead of holding final pose
+- Heavy attack path became inconsistent after combo refactor
+
+### Solutions / Decisions
+- Unified health and death under VitalsComponent and refactored DamageReceiver
+- Enforced AnimBP usage for all characters requiring montage playback
+- Disabled auto blend-out on death montage to persist final pose
+- Removed heavy attack input and obsolete montage ownership from PlayerCharacter
+- Confirmed combo system as the authoritative owner of attack animations
+
+### Next Actions
+- Begin Card 2.11: Ability framework
+
 ------------------------------------------------------------------------
 
 # Best Practices
