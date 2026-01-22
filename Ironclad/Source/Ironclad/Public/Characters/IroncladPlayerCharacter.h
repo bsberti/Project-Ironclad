@@ -185,12 +185,6 @@ protected:
         FName SectionName = NAME_None
     );
 
-    UPROPERTY(EditDefaultsOnly, Category = "Combat|Light Attack")
-    TObjectPtr<UAnimMontage> LightAttackMontage = nullptr;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Combat|Heavy Attack")
-    TObjectPtr<UAnimMontage> HeavyAttackMontage = nullptr;
-
     UFUNCTION()
     void StartSprint();
 

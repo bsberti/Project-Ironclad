@@ -38,10 +38,17 @@ FIroncladDamageResult AIroncladCharacterBase::ApplyDamage_Implementation(const F
 
     OnDamageApplied(Spec, Result);
 
-    if (!bDeathHandled && Result.bApplied && DamageReceiver->IsDead())
+	UE_LOG(LogIroncladDamage, Log,
+		TEXT("[Damage] %s::ApplyDamage_Implementation result: bDeathHandled=%s Result.bApplied=%s VitalsComponent->IsDead()=%s"),
+		*GetClass()->GetName(),
+		bDeathHandled ? TEXT("true") : TEXT("false"),
+		Result.bApplied ? TEXT("true") : TEXT("false"),
+		VitalsComponent && VitalsComponent->IsDead() ? TEXT("true") : TEXT("false"));
+
+    if (!bDeathHandled && Result.bApplied && VitalsComponent->IsDead())
     {
-        bDeathHandled = true;
         HandleDeath();
+		bDeathHandled = true;
     }
 
     return Result;
@@ -98,6 +105,7 @@ void AIroncladCharacterBase::HandleDeath()
     if (bDeathHandled) {
         return;
     }
+
     bDeathHandled = true;
 
     if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())

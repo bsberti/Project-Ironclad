@@ -362,12 +362,12 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
 		UE_LOG(LogTemp, Warning, TEXT("DodgeAction is not set on %s"), *GetName());
     }
 
-    if (HeavyAttackAction) {
+    /*if (HeavyAttackAction) {
         EnhancedInput->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::OnHeavyAttackPressed);
     }
     else {
 		UE_LOG(LogTemp, Warning, TEXT("HeavyAttackAction is not set on %s"), *GetName());
-    }
+    }*/
 
     if (DebugForceIdleStateAction) {
         EnhancedInput->BindAction(DebugForceIdleStateAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::DebugForceIdleCombatState);
@@ -458,26 +458,7 @@ void AIroncladPlayerCharacter::SetHitWindowActive(bool bActive)
 
 void AIroncladPlayerCharacter::OnHeavyAttackPressed()
 {
-    if (!CombatGate || !CombatTuning || !ComboComponent)
-    {
-        return;
-    }
-
-    const float StaminaCost = CombatTuning->Heavy.StaminaCost;
-
-    // Gate decides whether we can attempt an attack now
-    if (!CombatGate->RequestAction(
-        ECombatAction::HeavyAttack,
-        StaminaCost,
-        ECombatState::Attacking,
-        TEXT("HeavyAttack")
-    ))
-    {
-        return;
-    }
-
-    // Combo decides which montage/section to play next
-    ComboComponent->RequestAction(ECombatAction::HeavyAttack);
+    // Heavy attack intentionally disabled until we have content for it.
 }
 
 void AIroncladPlayerCharacter::OnDodgePressed()
@@ -510,7 +491,7 @@ void AIroncladPlayerCharacter::ToggleLockOn()
     }
 
     // Otherwise attempt to lock onto something.
-    AActor* Candidate = FindBestLockOnTarget(); // Step 3 will implement.
+    AActor* Candidate = FindBestLockOnTarget(); 
 
     if (!Candidate)
     {

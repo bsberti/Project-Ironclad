@@ -1,5 +1,6 @@
 #include "Combat/Damage/IroncladDamageReceiverComponent.h"
-
+#include "Components/IroncladVitalsComponent.h"
+#include "Characters/IroncladCharacterBase.h"
 #include "GameFramework/Actor.h"
 
 DEFINE_LOG_CATEGORY(LogIroncladDamage);
@@ -12,55 +13,63 @@ UIroncladDamageReceiverComponent::UIroncladDamageReceiverComponent()
 void UIroncladDamageReceiverComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	CurrentHealth = FMath::Clamp(CurrentHealth, 0.0f, MaxHealth);
-	if (CurrentHealth <= 0.0f)
-	{
-		CurrentHealth = MaxHealth;
-	}
 }
 
 FIroncladDamageResult UIroncladDamageReceiverComponent::ApplyDamage_Implementation(const FIroncladDamageSpec& Spec)
 {
-	FIroncladDamageResult Result;
+    FIroncladDamageResult Result;
+    Result.bApplied = false;
+    Result.AppliedAmount = 0.0f;
+    Result.Reason = FName(TEXT("Unknown"));
 
-	if (IsDead())
-	{
-		Result.bApplied = false;
-		Result.AppliedAmount = 0.0f;
-		Result.Reason = FName(TEXT("Dead"));
-		return Result;
-	}
+    AIroncladCharacterBase* OwnerChar = Cast<AIroncladCharacterBase>(GetOwner());
+    if (!OwnerChar)
+    {
+        Result.Reason = FName(TEXT("OwnerNotCharacterBase"));
+        return Result;
+    }
 
-	const float Amount = FMath::Max(0.0f, Spec.FinalAmount);
+    UIroncladVitalsComponent* Vitals = OwnerChar->GetVitals(); // if you have a getter; otherwise access member
+    if (!Vitals)
+    {
+        Result.Reason = FName(TEXT("NoVitals"));
+        return Result;
+    }
 
-	if (Amount <= 0.0f)
-	{
-		Result.bApplied = false;
-		Result.AppliedAmount = 0.0f;
-		Result.Reason = FName(TEXT("ZeroDamage"));
-		return Result;
-	}
+    if (Vitals->IsDead())
+    {
+        Result.Reason = FName(TEXT("Dead"));
+        return Result;
+    }
 
-	const float Old = CurrentHealth;
-	CurrentHealth = FMath::Clamp(CurrentHealth - Amount, 0.0f, MaxHealth);
+    const float Amount = FMath::Max(0.0f, Spec.FinalAmount);
+    if (Amount <= 0.0f)
+    {
+        Result.Reason = FName(TEXT("ZeroDamage"));
+        return Result;
+    }
 
-	Result.bApplied = true;
-	Result.AppliedAmount = (Old - CurrentHealth);
-	Result.Reason = NAME_None;
+    const float Old = Vitals->GetHealthNormalized(); // add getter if missing
+    const bool bApplied = Vitals->ApplyDamage(Amount);
+    const float NewHealth = Vitals->GetHealthNormalized();
 
-	if (bLogDamage)
-	{
-		UE_LOG(LogIroncladDamage, Display,
-			TEXT("[Damage] %s took %.2f damage (%.2f -> %.2f). Type=%d Tags=%s From=%s"),
-			*GetNameSafe(GetOwner()),
-			Result.AppliedAmount,
-			Old,
-			CurrentHealth,
-			(int32)Spec.DamageType,
-			*Spec.Tags.ToStringSimple(),
-			*GetNameSafe(Spec.SourceActor)
-		);
-	}
+    Result.bApplied = bApplied;
+    Result.AppliedAmount = bApplied ? (Old - NewHealth) : 0.0f;
+    Result.Reason = bApplied ? NAME_None : FName(TEXT("Rejected"));
 
-	return Result;
+    if (bLogDamage)
+    {
+        UE_LOG(LogIroncladDamage, Display,
+            TEXT("[Damage] %s took %.2f damage (%.2f -> %.2f). Type=%d Tags=%s From=%s"),
+            *GetNameSafe(GetOwner()),
+            Result.AppliedAmount,
+            Old,
+            NewHealth,
+            (int32)Spec.DamageType,
+            *Spec.Tags.ToStringSimple(),
+            *GetNameSafe(Spec.SourceActor)
+        );
+    }
+
+    return Result;
 }
