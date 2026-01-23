@@ -49,9 +49,9 @@ FIroncladDamageResult UIroncladDamageReceiverComponent::ApplyDamage_Implementati
         return Result;
     }
 
-    const float Old = Vitals->GetHealthNormalized(); // add getter if missing
+    const float Old = Vitals->GetHealth(); // add getter if missing
     const bool bApplied = Vitals->ApplyDamage(Amount);
-    const float NewHealth = Vitals->GetHealthNormalized();
+    const float NewHealth = Vitals->GetHealth();
 
     Result.bApplied = bApplied;
     Result.AppliedAmount = bApplied ? (Old - NewHealth) : 0.0f;

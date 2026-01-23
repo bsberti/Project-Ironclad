@@ -1,5 +1,5 @@
 #include "Characters/IroncladDummyEnemy.h"
-
+#include "Components/IroncladVitalsComponent.h"
 #include "Combat/Damage/IroncladDamageReceiverComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -18,6 +18,16 @@ AIroncladDummyEnemy::AIroncladDummyEnemy()
 	if (UCharacterMovementComponent* Move = GetCharacterMovement())
 	{
 		Move->DisableMovement();
+	}
+}
+
+void AIroncladDummyEnemy::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (VitalsComponent)
+	{
+		VitalsComponent->InitializeVitals(1000.f); // Dummy has a lot of health
 	}
 }
 

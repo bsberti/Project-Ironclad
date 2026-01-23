@@ -122,6 +122,11 @@ float UIroncladVitalsComponent::GetHealthNormalized() const
     return (MaxHealth > 0.f) ? (Health / MaxHealth) : 0.f;
 }
 
+float UIroncladVitalsComponent::GetHealth() const
+{
+    return Health;
+}
+
 float UIroncladVitalsComponent::GetStaminaNormalized() const
 {
     return (MaxStamina > 0.f) ? (Stamina / MaxStamina) : 0.f;
@@ -141,4 +146,10 @@ void UIroncladVitalsComponent::HandleDeath()
 {
     bIsDead = true;
     OnDeath.Broadcast();
+}
+
+void UIroncladVitalsComponent::InitializeVitals(float InMaxHealth)
+{
+    MaxHealth = FMath::Max(1.f, InMaxHealth);
+    Health = MaxHealth;
 }

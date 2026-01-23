@@ -13,4 +13,6 @@ public:
 
 protected:
 	virtual void HandleDeath() override;
+
+	virtual void BeginPlay() override;
 };

@@ -14,6 +14,8 @@ AIroncladCharacterBase::AIroncladCharacterBase()
 
     VitalsComponent = CreateDefaultSubobject<UIroncladVitalsComponent>(TEXT("VitalsComponent"));
     DamageReceiver = CreateDefaultSubobject<UIroncladDamageReceiverComponent>(TEXT("DamageReceiver"));
+
+	CurrentPoise = MaxPoise;
 }
 
 FIroncladDamageResult AIroncladCharacterBase::ApplyDamage_Implementation(const FIroncladDamageSpec& Spec)
@@ -124,6 +126,8 @@ void AIroncladCharacterBase::BeginPlay()
 {
     Super::BeginPlay();
 
+	CurrentPoise = MaxPoise;
+
     if (VitalsComponent)
     {
         VitalsComponent->OnDeath.AddDynamic(this, &AIroncladCharacterBase::HandleDeath);
@@ -149,23 +153,14 @@ void AIroncladCharacterBase::TryPlayHitReaction(const FIroncladDamageSpec& Spec,
 
 	EIroncladHitReactionKind Kind = ClassifyReactionKind(Spec);
 
-	// Stagger first pass: accumulate damage in a small window
-	if (bEnableStagger && StaggerDamageThreshold > 0.f)
+	// Refined stagger: poise break
+	if (bUsePoise)
 	{
-		AccumulatedDamageInWindow += AppliedDamage;
-
-		// Start/reset the stagger window timer
-		if (StaggerWindowSeconds > 0.f)
-		{
-			GetWorldTimerManager().ClearTimer(StaggerWindowTimer);
-			GetWorldTimerManager().SetTimer(StaggerWindowTimer, this, &AIroncladCharacterBase::ResetStaggerWindow, StaggerWindowSeconds, false);
-		}
-
-		if (AccumulatedDamageInWindow >= StaggerDamageThreshold)
+		const float PoiseDamage = ComputePoiseDamage(Spec, AppliedDamage);
+		const bool bTriggeredStagger = ApplyPoiseDamage(PoiseDamage);
+		if (bTriggeredStagger)
 		{
 			Kind = EIroncladHitReactionKind::Stagger;
-			AccumulatedDamageInWindow = 0.f;
-			GetWorldTimerManager().ClearTimer(StaggerWindowTimer);
 		}
 	}
 
@@ -197,18 +192,15 @@ void AIroncladCharacterBase::TryPlayHitReaction(const FIroncladDamageSpec& Spec,
 
 	UAnimInstance* AnimInst = MeshComp->GetAnimInstance();
 	const float PlayResult = AnimInst->Montage_Play(MontageToPlay, 1.0f);
+
 	UE_LOG(LogIroncladDamage, Warning,
 		TEXT("[Damage] TryPlayHitReaction: Montage_Play returned %0.3f"),
 		PlayResult
 	);
 
-	if (MeshComp)
+	if (PlayResult > 0.f)
 	{
-		if (AnimInst)
-		{
-			AnimInst->Montage_Play(MontageToPlay);
-			SetReactingLocked();
-		}
+		SetReactingLocked();
 	}
 }
 
@@ -297,4 +289,115 @@ UAnimMontage* AIroncladCharacterBase::SelectReactionMontage(EIroncladHitReaction
 	default:
 		return HitReactLightMontage;
 	}
+}
+
+float AIroncladCharacterBase::ComputePoiseDamage(const FIroncladDamageSpec& Spec, float AppliedDamage) const
+{
+	// Default: poise damage roughly tracks damage
+	float PoiseDamage = AppliedDamage;
+
+	// Simple semantic modifiers (first pass)
+	// Add these tags in your attack specs when creating damage.
+	const FGameplayTag TagHeavy = FGameplayTag::RequestGameplayTag(TEXT("Attack.Heavy"));
+	const FGameplayTag TagLight = FGameplayTag::RequestGameplayTag(TEXT("Attack.Light"));
+	const FGameplayTag TagStagger = FGameplayTag::RequestGameplayTag(TEXT("Attack.Stagger"));
+
+	if (Spec.Tags.HasTag(TagStagger))
+	{
+		PoiseDamage *= 2.5f;
+	}
+	else if (Spec.Tags.HasTag(TagHeavy))
+	{
+		PoiseDamage *= 1.75f;
+	}
+	else if (Spec.Tags.HasTag(TagLight))
+	{
+		PoiseDamage *= 1.0f;
+	}
+
+	return FMath::Max(0.f, PoiseDamage);
+}
+
+bool AIroncladCharacterBase::ApplyPoiseDamage(float PoiseDamage)
+{
+	if (!bUsePoise || MaxPoise <= 0.f || bIsStaggered)
+	{
+		return false;
+	}
+
+	DelayPoiseRegen();
+
+	CurrentPoise = FMath::Clamp(CurrentPoise - PoiseDamage, 0.f, MaxPoise);
+	UE_LOG(LogIroncladDamage, Warning,
+		TEXT("[Damage] ApplyPoiseDamage: PoiseDamage=%0.3f CurrentPoise=%0.3f / %0.3f"),
+		PoiseDamage,
+		CurrentPoise,
+		MaxPoise
+	);
+
+	if (CurrentPoise <= 0.f)
+	{
+		bIsStaggered = true;
+
+		// Reset poise immediately so it can regen after stagger ends
+		CurrentPoise = 0.f;
+
+		GetWorldTimerManager().ClearTimer(StaggerTimer);
+		GetWorldTimerManager().SetTimer(StaggerTimer, this, &AIroncladCharacterBase::EndStagger, StaggerDurationSeconds, false);
+
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->StopMovementImmediately();
+		}
+
+		return true; // stagger triggered
+	}
+
+	return false;
+}
+
+void AIroncladCharacterBase::DelayPoiseRegen()
+{
+	// Stop ongoing regen tick if any
+	GetWorldTimerManager().ClearTimer(PoiseRegenDelayTimer);
+
+	if (PoiseRegenDelaySeconds <= 0.f)
+	{
+		BeginPoiseRegen();
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(PoiseRegenDelayTimer, this, &AIroncladCharacterBase::BeginPoiseRegen, PoiseRegenDelaySeconds, false);
+}
+
+void AIroncladCharacterBase::BeginPoiseRegen()
+{
+	// Tick regen at a modest rate (10Hz)
+	GetWorldTimerManager().SetTimer(PoiseRegenDelayTimer, this, &AIroncladCharacterBase::TickPoiseRegen, 0.1f, true);
+}
+
+void AIroncladCharacterBase::TickPoiseRegen()
+{
+	if (bIsStaggered)
+	{
+		return; // wait until stagger ends
+	}
+
+	if (CurrentPoise >= MaxPoise)
+	{
+		CurrentPoise = MaxPoise;
+		GetWorldTimerManager().ClearTimer(PoiseRegenDelayTimer);
+		return;
+	}
+
+	const float Delta = PoiseRegenPerSecond * 0.1f;
+	CurrentPoise = FMath::Min(MaxPoise, CurrentPoise + Delta);
+}
+
+void AIroncladCharacterBase::EndStagger()
+{
+	bIsStaggered = false;
+
+	// Give a small buffer so you don’t instantly re-break in the same frame window
+	DelayPoiseRegen();
 }

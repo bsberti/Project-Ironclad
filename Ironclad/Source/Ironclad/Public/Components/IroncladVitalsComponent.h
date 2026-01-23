@@ -59,10 +59,15 @@ public:
     float GetHealthNormalized() const;
 
     UFUNCTION(BlueprintPure, Category = "Vitals")
+    float GetHealth() const;
+
+    UFUNCTION(BlueprintPure, Category = "Vitals")
     float GetStaminaNormalized() const;
 
     UFUNCTION(BlueprintPure)
     bool CanSpendStamina(float Amount) const;
+
+    void InitializeVitals(float InMaxHealth);
 
 protected:
 	// Called when the game starts

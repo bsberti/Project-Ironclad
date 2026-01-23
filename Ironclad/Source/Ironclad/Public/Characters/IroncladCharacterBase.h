@@ -95,6 +95,41 @@ protected:
 
 	FTimerHandle StaggerWindowTimer;
 
+	// --- Stagger / Poise (refined first pass) ---
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ironclad|Stagger")
+	bool bUsePoise = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ironclad|Stagger", meta = (ClampMin = "0.0"))
+	float MaxPoise = 50.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Ironclad|Stagger")
+	float CurrentPoise = 50.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ironclad|Stagger", meta = (ClampMin = "0.0"))
+	float PoiseRegenPerSecond = 10.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ironclad|Stagger", meta = (ClampMin = "0.0"))
+	float PoiseRegenDelaySeconds = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ironclad|Stagger", meta = (ClampMin = "0.0"))
+	float StaggerDurationSeconds = 0.6f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Ironclad|Stagger")
+	bool bIsStaggered = false;
+
+	FTimerHandle PoiseRegenDelayTimer;
+	FTimerHandle StaggerTimer;
+
+	void DelayPoiseRegen();
+	void BeginPoiseRegen();
+	void TickPoiseRegen();
+	void EndStagger();
+
+	float ComputePoiseDamage(const FIroncladDamageSpec& Spec, float AppliedDamage) const;
+	bool ApplyPoiseDamage(float PoiseDamage);
+
+
 	// Hook already exists in your base; we will implement it
 	virtual void OnDamageApplied(const FIroncladDamageSpec& Spec, const FIroncladDamageResult& Result);
 
