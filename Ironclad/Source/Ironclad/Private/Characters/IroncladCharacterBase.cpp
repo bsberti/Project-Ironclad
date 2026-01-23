@@ -47,10 +47,8 @@ FIroncladDamageResult AIroncladCharacterBase::ApplyDamage_Implementation(const F
 		Result.bApplied ? TEXT("true") : TEXT("false"),
 		VitalsComponent && VitalsComponent->IsDead() ? TEXT("true") : TEXT("false"));
 
-    if (!bDeathHandled && Result.bApplied && VitalsComponent->IsDead())
-    {
+    if (VitalsComponent && Result.bApplied && VitalsComponent->IsDead()) {
         HandleDeath();
-		bDeathHandled = true;
     }
 
     return Result;

@@ -117,6 +117,24 @@ bool UIroncladVitalsComponent::SpendStamina(float Amount)
     }
 }
 
+bool UIroncladVitalsComponent::RestoreStamina(float Amount)
+{
+    if (bIsDead || Amount <= 0.f)
+    {
+        return false;
+    }
+
+    const float Old = Stamina;
+    Stamina = FMath::Clamp(Stamina + Amount, 0.f, MaxStamina);
+
+    if (!FMath::IsNearlyEqual(Old, Stamina))
+    {
+        BroadcastStamina();
+    }
+
+    return true;
+}
+
 float UIroncladVitalsComponent::GetHealthNormalized() const
 {
     return (MaxHealth > 0.f) ? (Health / MaxHealth) : 0.f;

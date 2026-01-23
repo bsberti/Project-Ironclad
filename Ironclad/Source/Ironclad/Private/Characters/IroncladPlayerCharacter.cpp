@@ -57,6 +57,7 @@ AIroncladPlayerCharacter::AIroncladPlayerCharacter()
 	CombatTuning = CreateDefaultSubobject<UIroncladCombatTuningDataAsset>(TEXT("CombatTuning"));
     WeaponComponent = CreateDefaultSubobject<UIroncladWeaponComponent>(TEXT("WeaponComponent"));
     ComboComponent = CreateDefaultSubobject<UIroncladComboComponent>(TEXT("ComboComponent"));
+	AbilityComponent = CreateDefaultSubobject<UIroncladAbilityComponent>(TEXT("AbilityComponent"));
 }
 
 void AIroncladPlayerCharacter::BeginPlay()
@@ -382,6 +383,21 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
     else {
         UE_LOG(LogTemp, Warning, TEXT("ChangeWeaponAction is not set on %s"), *GetName());
     }
+
+    if (StaminaBurstAction) {
+        EnhancedInput->BindAction(StaminaBurstAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::OnStaminaBurstPressed);
+    }
+    else {
+        UE_LOG(LogTemp, Warning, TEXT("StaminaBurstAction is not set on %s"), *GetName());
+    }
+
+}
+
+void AIroncladPlayerCharacter::OnStaminaBurstPressed()
+{
+    if (AbilityComponent) {
+        AbilityComponent->TryActivateAbility(StaminaBurstAbility);
+    }
 }
 
 void AIroncladPlayerCharacter::CycleWeapon()
@@ -496,9 +512,11 @@ void AIroncladPlayerCharacter::ToggleLockOn()
     if (!Candidate)
     {
         // No target found -> remain unlocked. Keep this log for early testing.
-        UE_LOG(LogTemp, Verbose, TEXT("ToggleLockOn: no valid target found."));
+        UE_LOG(LogTemp, Warning, TEXT("ToggleLockOn: no valid target found."));
         return;
     }
+
+    UE_LOG(LogIroncladLockOn, Warning, TEXT("ToggleLockOn: Candidate=%s"), *GetNameSafe(Candidate));
 
     EnableLockOn(Candidate);
 }
@@ -507,7 +525,7 @@ void AIroncladPlayerCharacter::EnableLockOn(AActor* NewTarget)
 {
     if (!IsTargetValid(NewTarget))
     {
-        UE_LOG(LogTemp, Verbose, TEXT("EnableLockOn: target invalid."));
+        UE_LOG(LogTemp, Warning, TEXT("EnableLockOn: target invalid."));
         return;
     }
 

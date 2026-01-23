@@ -3,6 +3,9 @@
 #include "Components/IroncladCombatGateComponent.h"
 #include "Components/IroncladWeaponComponent.h"
 #include "Components/IroncladComboComponent.h"
+#include "Components/IroncladAbilityComponent.h"
+
+#include "Abilities/IroncladAbilityDataAsset.h"
 
 #include "Animation/AnimMontage.h"
 
@@ -90,16 +93,46 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Input")
     UInputMappingContext* DefaultMappingContext;
 
-	// --- Input Actions -----
+	// ----------------- INPUT ACTIONS ------------------
 
-    UPROPERTY(EditDefaultsOnly, Category = "Input")
+    UPROPERTY(EditDefaultsOnly, Category = "Input|Controls")
     UInputAction* MoveAction;
 
-    UPROPERTY(EditDefaultsOnly, Category = "Input")
+    UPROPERTY(EditDefaultsOnly, Category = "Input|Controls")
     UInputAction* LookAction;
 
-    UPROPERTY(EditDefaultsOnly, Category = "Input")
+    UPROPERTY(EditDefaultsOnly, Category = "Input|Controls")
     UInputAction* JumpAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Debug")
+    class UInputAction* DebugDamageAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Controls")
+    class UInputAction* SprintAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Controls")
+    class UInputAction* LockOnAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Combat")
+    class UInputAction* LightAttackAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Combat")
+    class UInputAction* HeavyAttackAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Combat")
+    class UInputAction* DodgeAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Debug")
+    class UInputAction* DebugForceIdleStateAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Combat")
+    class UInputAction* ChangeWeaponAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Ability")
+    class UInputAction* StaminaBurstAction;
+
+    // --------------------------------------------------
+    // ------------------ COMPONENTS --------------------
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     class USpringArmComponent* CameraBoom;
@@ -107,34 +140,58 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     class UCameraComponent* FollowCamera;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-    class UInputAction* DebugDamageAction;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
+    UIroncladCombatGateComponent* CombatGate;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-    class UInputAction* SprintAction;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Combo", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UIroncladComboComponent> ComboComponent = nullptr;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-    class UInputAction* LockOnAction;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+    UIroncladWeaponComponent* WeaponComponent;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-    class UInputAction* LightAttackAction;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability", meta = (AllowPrivateAccess = "true"))
+    UIroncladAbilityComponent* AbilityComponent;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-    class UInputAction* HeavyAttackAction;
+    // --------------------------------------------------
+    // --------------- ACTION FUNCTIONS -----------------
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-    class UInputAction* DodgeAction;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-    class UInputAction* DebugForceIdleStateAction;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-    class UInputAction* ChangeWeaponAction;
-
-    // --- Input Actions -----
+    UFUNCTION()
+    void ToggleLockOnDebug();
 
     UFUNCTION()
     void DebugApplyDamage();
+
+    UFUNCTION()
+    void StartSprint();
+
+    UFUNCTION()
+    void ToggleLockOn();
+
+    UFUNCTION()
+    void StopSprint();
+
+    UFUNCTION()
+    void OnLightAttackPressed();
+
+    UFUNCTION()
+    void OnHeavyAttackPressed();
+
+    UFUNCTION()
+    void OnDodgePressed();
+
+    UFUNCTION()
+    void DebugForceIdleCombatState();
+
+    UFUNCTION()
+    void CycleWeapon();
+
+    UFUNCTION()
+    void OnStaminaBurstPressed();
+
+    // --------------------------------------------------
+
+    UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+    TObjectPtr<UIroncladAbilityDataAsset> StaminaBurstAbility = nullptr;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Sprint")
     float WalkSpeed = 450.f;
@@ -147,12 +204,6 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement|Sprint")
     bool bIsSprinting = false;
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
-    UIroncladCombatGateComponent* CombatGate;
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Combo", meta = (AllowPrivateAccess = "true"))
-    TObjectPtr<UIroncladComboComponent> ComboComponent = nullptr;
 
     // --- Generic attack lifecycle state ---
     UPROPERTY(VisibleAnywhere, Category = "Combat|Attack")
@@ -184,30 +235,6 @@ protected:
         FName DebugTag,
         FName SectionName = NAME_None
     );
-
-    UFUNCTION()
-    void StartSprint();
-
-    UFUNCTION()
-    void ToggleLockOn();
-
-    UFUNCTION()
-    void StopSprint();
-
-	UFUNCTION()
-	void OnLightAttackPressed();
-
-    UFUNCTION()
-    void OnHeavyAttackPressed();
-
-    UFUNCTION()
-    void OnDodgePressed();
-
-    UFUNCTION()
-	void DebugForceIdleCombatState();
-
-    UFUNCTION()
-    void CycleWeapon();
 
     virtual void Tick(float DeltaSeconds) override;
     
@@ -265,9 +292,6 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Validation", meta = (EditCondition = "bAutoUnlockWhenOutsideCone"))
     float OutsideConeGraceSeconds = 0.50f;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
-    UIroncladWeaponComponent* WeaponComponent;
-
     // ----- Internal helpers -----
     void EnableLockOn(AActor* NewTarget);
     void DisableLockOn();
@@ -300,10 +324,6 @@ protected:
 
     UPROPERTY(EditDefaultsOnly, Category = "LockOn|Debug")
     bool bDebugPrintOnScreen = true;
-
-    // Allow enabling debug via input
-    UFUNCTION()
-    void ToggleLockOnDebug();
 
     void DrawLockOnOnScreenDebug() const;
     void DrawLockOnWorldDebug() const;

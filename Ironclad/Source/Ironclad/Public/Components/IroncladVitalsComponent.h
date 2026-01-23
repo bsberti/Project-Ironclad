@@ -67,6 +67,8 @@ public:
     UFUNCTION(BlueprintPure)
     bool CanSpendStamina(float Amount) const;
 
+	bool RestoreStamina(float Amount);
+
     void InitializeVitals(float InMaxHealth);
 
 protected:
