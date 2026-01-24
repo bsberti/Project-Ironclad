@@ -161,7 +161,7 @@ void UIroncladAbilityComponent::Execute(UIroncladAbilityDataAsset* Ability, AAct
 	case EIroncladAbilityEffectType::StaminaBurst:
 		if (Vitals)
 		{
-			Vitals->RestoreStamina(Ability->StaminaRestoreAmount); // add if missing
+			Vitals->RestoreStamina(Ability->StaminaRestoreAmount);
 		}
 		break;
 
