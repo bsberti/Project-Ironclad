@@ -502,6 +502,41 @@ applicable.
 ### Next Actions
 - Begin Card 2.11: Ability framework
 
+## \[2026-01-23\] — Phase 2 / Core Combat
+
+### Session Goals
+- Implement a scalable first-pass Ability Framework.
+- Ship one sample ability to validate the execution pipeline.
+
+### Work Completed
+- Implemented Ability Framework using DataAssets and a dedicated AbilityComponent.
+- Added Stamina Burst as the first test ability with cooldown and cost handling.
+- Integrated ability activation through player input.
+- Ensured abilities respect stamina availability and cooldown timing.
+
+### Technical Notes
+- Abilities follow a clean flow: Input → Validation → Commit → Execute.
+- Cooldowns tracked via AbilityId → NextReadyTime mapping.
+- Stamina handling separated between validation (`CanSpendStamina`) and commit (`SpendStamina`).
+- Ability effects are executed through a centralized component, shared by characters.
+
+### Problems Encountered
+- Initial double stamina spending due to validation mutating state.
+- Ability input not appearing due to build/reflection issues.
+- Cooldown feedback lacked remaining time information.
+
+### Solutions / Decisions
+- Refactored validation to be side-effect free and moved all costs into commit stage.
+- Rebuilt project to refresh reflection data for input and components.
+- Enhanced debug output to display remaining cooldown time.
+- Added RestoreStamina API to Vitals for ability-driven stamina recovery.
+
+### Next Actions
+- Continue with Card 2.11 extensions or begin a second ability (e.g., Dash Strike).
+- Consider montage-driven ability execution for animation-synced abilities.
+- Begin planning ability targeting and effect extensibility.
+
+
 ------------------------------------------------------------------------
 
 # Best Practices
