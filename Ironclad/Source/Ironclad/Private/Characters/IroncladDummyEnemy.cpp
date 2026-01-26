@@ -27,7 +27,7 @@ void AIroncladDummyEnemy::BeginPlay()
 
 	if (VitalsComponent)
 	{
-		VitalsComponent->InitializeVitals(1000.f); // Dummy has a lot of health
+		VitalsComponent->InitializeVitals(200.f); // Dummy has a lot of health
 	}
 }
 

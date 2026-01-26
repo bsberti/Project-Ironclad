@@ -28,6 +28,28 @@ This is a systems-driven prototype: scope is intentionally limited to prioritize
 
 ---
 
+## Gameplay Showcase
+
+# Movement & Locomotion
+
+![Walking](Docs/Gif/Walking.gif)
+
+![Sprinting](Docs/Gif/Sprint.gif)
+
+# Combat System
+
+![Combat Combo and Hit Reaction](Docs/Gif/Combo.gif)
+
+# Abilities
+
+![Stamina Burst](Docs/Gif/StaminaBurst.gif)
+
+# Dodge System
+
+![Dodge](Docs/Gif/Dodge.gif)
+
+---
+
 ## Technical Focus
 
 This project emphasizes:
