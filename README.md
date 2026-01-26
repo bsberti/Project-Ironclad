@@ -32,20 +32,26 @@ This is a systems-driven prototype: scope is intentionally limited to prioritize
 
 # Movement & Locomotion
 
+- Walking
 ![Walking](Docs/Gif/Walking.gif)
 
+- Sprinting
 ![Sprinting](Docs/Gif/Sprint.gif)
 
 # Combat System
 
+- Combo Attack and Hit Reaction
+    - 1, 2 and 3 hit attack
 ![Combat Combo and Hit Reaction](Docs/Gif/Combo.gif)
 
 # Abilities
 
+- Stamina Burst (Stamina recovery ability)
 ![Stamina Burst](Docs/Gif/StaminaBurst.gif)
 
 # Dodge System
 
+- Dodge dash
 ![Dodge](Docs/Gif/Dodge.gif)
 
 ---
