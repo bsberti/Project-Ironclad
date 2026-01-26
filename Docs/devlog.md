@@ -536,6 +536,37 @@ applicable.
 - Consider montage-driven ability execution for animation-synced abilities.
 - Begin planning ability targeting and effect extensibility.
 
+## \[2026-01-26\] — Phase 2 Completion / Phase 3 Setup
+
+### Session Goals
+- Finalize the Core Combat milestone as a portfolio artifact
+- Prepare the transition into Phase 3 (Enemy AI & Interaction)
+
+### Work Completed
+- Finalized Phase 2 (Core Combat) milestone
+- Integrated combat documentation and gameplay GIFs into README
+- Structured Phase 3 (Enemy AI & Interaction) into concrete Kanban cards
+- Defined EnemyBase abstraction strategy for AI phase
+
+### Technical Notes
+- Combat milestone packaged with architecture documentation and visual proof
+- Phase 3 planned with clear separation between combat and AI responsibilities
+- Enemy architecture designed to extend CharacterBase without duplicating shared systems
+
+### Problems Encountered
+- Oversized GIF caused Git push failure due to large blob in history
+- Initial assumption that DummyEnemy fulfilled EnemyBase requirements
+
+### Solutions / Decisions
+- Rewrote Git history to remove oversized asset cleanly
+- Introduced AIroncladEnemyBase as a thin abstraction above CharacterBase
+- Kept combat and vitals logic in CharacterBase to preserve reuse and symmetry
+- Repositioned DummyEnemy as a test harness deriving from EnemyBase
+
+### Next Actions
+- Begin Card 3.2: AI Perception setup
+
+
 
 ------------------------------------------------------------------------
 
