@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Characters/IroncladCharacterBase.h"
+#include "Characters/IroncladEnemyBase.h"
 #include "IroncladDummyEnemy.generated.h"
 
 UCLASS()
-class IRONCLAD_API AIroncladDummyEnemy : public AIroncladCharacterBase
+class IRONCLAD_API AIroncladDummyEnemy : public AIroncladEnemyBase
 {
 	GENERATED_BODY()
 
