@@ -1,12 +1,20 @@
+#include "AI/IroncladEnemyAIController.h"
+
 #include "Characters/IroncladDummyEnemy.h"
+
 #include "Components/IroncladVitalsComponent.h"
-#include "Combat/Damage/IroncladDamageReceiverComponent.h"
 #include "Components/CapsuleComponent.h"
+
+#include "Combat/Damage/IroncladDamageReceiverComponent.h"
+
 #include "GameFramework/CharacterMovementComponent.h"
 
 AIroncladDummyEnemy::AIroncladDummyEnemy()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	AIControllerClass = AIroncladEnemyAIController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
 	// Configure the base-created receiver (do NOT create a new one here).
 	if (DamageReceiver)
