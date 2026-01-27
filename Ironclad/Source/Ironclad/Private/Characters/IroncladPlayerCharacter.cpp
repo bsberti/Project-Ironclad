@@ -6,6 +6,8 @@
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
 
+#include "Perception/AISense_Hearing.h"
+
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -24,6 +26,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogIroncladLockOn, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogIroncladPerception, Log, All);
 
 AIroncladPlayerCharacter::AIroncladPlayerCharacter()
 {
@@ -348,6 +351,13 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
     else {
         UE_LOG(LogTemp, Warning, TEXT("ToggleLockOnDebugAction is not set on %s"), *GetName());
     }
+
+    if (DebugMakeNoiseAction) {
+        EnhancedInput->BindAction(DebugMakeNoiseAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::DebugMakeNoise);
+    }
+    else {
+        UE_LOG(LogTemp, Warning, TEXT("DebugMakeNoiseAction is not set on %s"), *GetName());
+	}
 
     if (LightAttackAction) {
         EnhancedInput->BindAction(LightAttackAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::OnLightAttackPressed);
@@ -989,6 +999,14 @@ void AIroncladPlayerCharacter::StartJump()
 void AIroncladPlayerCharacter::StopJump()
 {
     StopJumping();
+}
+
+void AIroncladPlayerCharacter::DebugMakeNoise()
+{
+    const FVector Loc = GetActorLocation();
+    UAISense_Hearing::ReportNoiseEvent(GetWorld(), Loc, 1.0f, this, 0.0f, TEXT("PlayerDebugNoise"));
+
+    UE_LOG(LogIroncladPerception, Log, TEXT("[Perception][Player] Noise emitted at %s"), *Loc.ToString());
 }
 
 // ------------------------------------------

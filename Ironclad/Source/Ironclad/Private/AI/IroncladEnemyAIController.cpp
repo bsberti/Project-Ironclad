@@ -5,6 +5,7 @@
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISense_Sight.h"
 #include "Perception/AISense_Hearing.h"
+
 #include "GameFramework/Character.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogIroncladPerception, Log, All);
@@ -72,8 +73,32 @@ void AIroncladEnemyAIController::BeginPlay()
 
 void AIroncladEnemyAIController::OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors)
 {
-	UE_LOG(LogIroncladPerception, Log, TEXT("%s UpdatedActors=%d"),
-		*IC_PercPrefix(this), UpdatedActors.Num());
+	FString Names;
+	for (AActor* A : UpdatedActors)
+	{
+		if (!Names.IsEmpty()) Names += TEXT(", ");
+		Names += GetNameSafe(A);
+	}
+
+	UE_LOG(LogIroncladPerception, Display, TEXT("%s UpdatedActors=%d [%s]"),
+		*IC_PercPrefix(this), UpdatedActors.Num(), *Names);
+}
+
+static bool IC_IsActorCurrentlyPerceived(UAIPerceptionComponent* Perc, AActor* Actor)
+{
+	if (!Perc || !Actor) return false;
+
+	FActorPerceptionBlueprintInfo Info;
+	Perc->GetActorsPerception(Actor, Info);
+
+	for (const FAIStimulus& S : Info.LastSensedStimuli)
+	{
+		if (S.WasSuccessfullySensed())
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void AIroncladEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
@@ -111,6 +136,8 @@ void AIroncladEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAISti
 	}
 	else
 	{
+		const bool bStillPerceived = IC_IsActorCurrentlyPerceived(AIPerception, Actor);
+
 		UE_LOG(LogIroncladPerception, Log,
 			TEXT("%s LOST Target=%s Sense=%s Dist=%.0f StimStrength=%.2f Age=%.2f"),
 			*IC_PercPrefix(this),
@@ -120,8 +147,12 @@ void AIroncladEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAISti
 			Stimulus.Strength,
 			Stimulus.GetAge());
 
-		// “Lost” can fire because of sight loss, stimulus aging, etc.
-		ClearCurrentTarget(FString::Printf(TEXT("%s Lost/Expired"), *SenseName));
+		// Only clear if *no* sense is currently perceiving the actor.
+		if (!bStillPerceived)
+		{
+			// “Lost” can fire because of sight loss, stimulus aging, etc.
+			ClearCurrentTarget(FString::Printf(TEXT("%s Lost/Expired"), *SenseName));
+		}
 	}
 }
 
@@ -133,7 +164,6 @@ void AIroncladEnemyAIController::SetCurrentTarget(AActor* NewTarget, const FStri
 	}
 
 	CurrentTarget = NewTarget;
-	UE_LOG(LogIroncladPerception, Log, TEXT("[Perception] TARGET ACQUIRED: %s | %s"), *GetNameSafe(CurrentTarget), *Reason);
 }
 
 void AIroncladEnemyAIController::ClearCurrentTarget(const FString& Reason)
@@ -143,6 +173,5 @@ void AIroncladEnemyAIController::ClearCurrentTarget(const FString& Reason)
 		return;
 	}
 
-	UE_LOG(LogIroncladPerception, Log, TEXT("[Perception] TARGET LOST: %s | %s"), *GetNameSafe(CurrentTarget), *Reason);
 	CurrentTarget = nullptr;
 }

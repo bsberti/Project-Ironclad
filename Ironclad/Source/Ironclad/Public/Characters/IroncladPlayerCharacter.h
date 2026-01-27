@@ -125,6 +125,9 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Debug")
     class UInputAction* DebugForceIdleStateAction;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Debug")
+    class UInputAction* DebugMakeNoiseAction;
+
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Combat")
     class UInputAction* ChangeWeaponAction;
 
@@ -187,6 +190,9 @@ protected:
 
     UFUNCTION()
     void OnStaminaBurstPressed();
+
+    UFUNCTION()
+    void DebugMakeNoise();
 
     // --------------------------------------------------
 

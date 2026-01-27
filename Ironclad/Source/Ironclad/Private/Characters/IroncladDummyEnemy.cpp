@@ -1,6 +1,6 @@
-#include "AI/IroncladEnemyAIController.h"
-
 #include "Characters/IroncladDummyEnemy.h"
+
+#include "AI/IroncladEnemyAIController.h"
 
 #include "Components/IroncladVitalsComponent.h"
 #include "Components/CapsuleComponent.h"
