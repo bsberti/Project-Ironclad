@@ -566,6 +566,40 @@ applicable.
 ### Next Actions
 - Begin Card 3.2: AI Perception setup
 
+## \[2026-01-27\] — Phase 3 / AI Systems
+
+### Session Goals
+- Implement AI Perception for enemies using Unreal’s AIPerception system
+- Validate player detection via sight and hearing
+- Ensure perception events are debuggable and cleanly logged
+
+### Work Completed
+- Created a dedicated enemy AI controller with AIPerceptionComponent
+- Configured Sight and Hearing senses for enemy detection
+- Integrated AI controller with dummy enemies for automatic possession
+- Verified perception behavior with multiple enemies simultaneously
+- Implemented player-generated noise events to test hearing stimuli
+
+### Technical Notes
+- Sight configured with custom radius, lose radius, and stimulus aging
+- Hearing validated using UAISense_Hearing::ReportNoiseEvent
+- Introduced LogIroncladPerception category for filtered AI debugging
+- Perception logs include controller/pawn identity, sense type, distance, and stimulus age
+
+### Problems Encountered
+- Initial difficulty distinguishing which enemy instance was generating perception logs
+- Const-correctness issue when querying perception state across stimuli
+
+### Solutions / Decisions
+- Added controller/pawn context to all perception logs for clarity
+- Refactored perception state query to use non-const UAIPerceptionComponent access
+- Centralized logging in perception callbacks and removed duplicate logs
+- Standardized AI debug output via a dedicated log category
+
+### Next Actions
+- Begin Card 3.3 — Decision System (Behavior Tree or FSM)
+- Use perception results to drive initial enemy awareness and pursuit behavior
+- Define how enemies transition from idle to alerted/combat states
 
 
 ------------------------------------------------------------------------
