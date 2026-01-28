@@ -1,5 +1,7 @@
 #include "Characters/IroncladPlayerCharacter.h"
 
+#include "AI/IroncladEnemyAIController.h"
+
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -26,7 +28,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogIroncladLockOn, Log, All);
-DEFINE_LOG_CATEGORY_STATIC(LogIroncladPerception, Log, All);
+//DEFINE_LOG_CATEGORY_STATIC(LogIroncladPerception, Log, All);
 
 AIroncladPlayerCharacter::AIroncladPlayerCharacter()
 {

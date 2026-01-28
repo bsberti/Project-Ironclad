@@ -1,5 +1,10 @@
 #include "AI/IroncladEnemyAIController.h"
 
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BlackboardComponent.h"
+
+#include "Characters/IroncladPlayerCharacter.h"
+
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
@@ -7,8 +12,6 @@
 #include "Perception/AISense_Hearing.h"
 
 #include "GameFramework/Character.h"
-
-DEFINE_LOG_CATEGORY_STATIC(LogIroncladPerception, Log, All);
 
 AIroncladEnemyAIController::AIroncladEnemyAIController()
 {
@@ -44,6 +47,9 @@ AIroncladEnemyAIController::AIroncladEnemyAIController()
 	HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;
 
 	AIPerception->ConfigureSense(*HearingConfig);
+
+	BlackboardComp = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BlackboardComp"));
+	BehaviorTreeComp = CreateDefaultSubobject<UBehaviorTreeComponent>(TEXT("BehaviorTreeComp"));
 }
 
 static FString IC_PercPrefix(const AAIController* Controller)
@@ -73,16 +79,53 @@ void AIroncladEnemyAIController::BeginPlay()
 
 void AIroncladEnemyAIController::OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors)
 {
+	// Super::OnPerceptionUpdated(UpdatedActors);
+
+	// Keep your logging
 	FString Names;
 	for (AActor* A : UpdatedActors)
 	{
 		if (!Names.IsEmpty()) Names += TEXT(", ");
 		Names += GetNameSafe(A);
 	}
-
 	UE_LOG(LogIroncladPerception, Display, TEXT("%s UpdatedActors=%d [%s]"),
 		*IC_PercPrefix(this), UpdatedActors.Num(), *Names);
+
+	if (!BlackboardComp) return;
+
+	AActor* BBTargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(TEXT("TargetActor")));
+
+	for (AActor* Actor : UpdatedActors)
+	{
+		if (!Actor) continue;
+		if (!Actor->IsA(AIroncladPlayerCharacter::StaticClass())) continue;
+
+		FActorPerceptionBlueprintInfo Info;
+		GetPerceptionComponent()->GetActorsPerception(Actor, Info);
+
+		// "Sensed" means any stimulus currently active
+		const bool bSensedNow = Info.LastSensedStimuli.ContainsByPredicate(
+			[](const FAIStimulus& S) { return S.WasSuccessfullySensed(); }
+		);
+
+		if (bSensedNow)
+		{
+			BlackboardComp->SetValueAsObject(TEXT("TargetActor"), Actor);
+			BlackboardComp->SetValueAsBool(TEXT("HasTarget"), true);
+			BlackboardComp->SetValueAsVector(TEXT("LastKnownLocation"), Actor->GetActorLocation());
+		}
+		else
+		{
+			// If we lost the current target, clear it
+			if (Actor == BBTargetActor)
+			{
+				BlackboardComp->ClearValue(TEXT("TargetActor"));
+				BlackboardComp->SetValueAsBool(TEXT("HasTarget"), false);
+			}
+		}
+	}
 }
+
 
 static bool IC_IsActorCurrentlyPerceived(UAIPerceptionComponent* Perc, AActor* Actor)
 {
@@ -174,4 +217,30 @@ void AIroncladEnemyAIController::ClearCurrentTarget(const FString& Reason)
 	}
 
 	CurrentTarget = nullptr;
+}
+
+void AIroncladEnemyAIController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	if (!BehaviorTreeAsset)
+	{
+		UE_LOG(LogIroncladPerception, Warning, TEXT("%s Missing BehaviorTreeAsset"), *IC_PercPrefix(this));
+		return;
+	}
+
+	UBlackboardComponent* BB = nullptr;
+	if (!UseBlackboard(BehaviorTreeAsset->BlackboardAsset, BB) || !BB)
+	{
+		UE_LOG(LogIroncladPerception, Error, TEXT("%s UseBlackboard failed"), *IC_PercPrefix(this));
+		return;
+	}
+
+	BlackboardComp = BB;
+
+	// Set HomeLocation once
+	BlackboardComp->SetValueAsVector(TEXT("HomeLocation"), InPawn->GetActorLocation());
+	BlackboardComp->SetValueAsFloat(TEXT("AttackRange"), 200.f);
+
+	RunBehaviorTree(BehaviorTreeAsset);
 }

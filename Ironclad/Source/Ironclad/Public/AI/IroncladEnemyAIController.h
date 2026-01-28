@@ -3,11 +3,16 @@
 #include "CoreMinimal.h"
 #include "AIController.h"
 #include "Perception/AIPerceptionTypes.h"
+
+#include <BehaviorTree/BehaviorTreeComponent.h>
+
 #include "IroncladEnemyAIController.generated.h"
 
 class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
 class UAISenseConfig_Hearing;
+
+DEFINE_LOG_CATEGORY_STATIC(LogIroncladPerception, Log, All);
 
 UCLASS()
 class IRONCLAD_API AIroncladEnemyAIController : public AAIController
@@ -41,4 +46,15 @@ protected:
 
 	void SetCurrentTarget(AActor* NewTarget, const FString& Reason);
 	void ClearCurrentTarget(const FString& Reason);
+
+	void OnPossess(APawn* InPawn);
+
+	UPROPERTY(EditDefaultsOnly, Category = "AI")
+	UBehaviorTree* BehaviorTreeAsset = nullptr;
+
+	UPROPERTY(VisibleAnywhere, Category = "AI")
+	UBlackboardComponent* BlackboardComp = nullptr;
+
+	UPROPERTY(VisibleAnywhere, Category = "AI")
+	UBehaviorTreeComponent* BehaviorTreeComp = nullptr;
 };
