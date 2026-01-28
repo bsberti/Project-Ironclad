@@ -601,6 +601,47 @@ applicable.
 - Use perception results to drive initial enemy awareness and pursuit behavior
 - Define how enemies transition from idle to alerted/combat states
 
+## \[2026-01-28\] — Phase 3 / AI Systems
+
+### Session Goals
+- Implement enemy decision-making using Behavior Tree and Blackboard
+- Integrate AI Perception with decision logic
+- Make enemy movement visually readable during chase/return
+
+### Work Completed
+- Implemented full enemy decision system using Behavior Tree + Blackboard (Idle, Chase, Attack, Return)
+- Integrated AI Perception outputs into Blackboard-driven decisions
+- Validated decision flow using BT debugger and runtime Blackboard inspection
+- Fixed enemy locomotion animations during navigation (chase/return)
+- Configured enemy rotation to face movement direction
+
+### Technical Notes
+- Decision logic lives entirely in AIController + BT/BB, keeping enemy character free of behavior code
+- Perception updates write target state (HasTarget, TargetActor, LastKnownLocation) into Blackboard
+- BT Service updates runtime metrics (DistanceToTarget) to drive branch selection
+- Blackboard Enum keys require Blueprint Enum assets; native C++ enums cannot be used directly
+- AI locomotion requires speed-based transition rules; acceleration-based rules are unreliable for MoveTo-driven movement
+- OrientRotationToMovement produces correct facing during navigation without extra code
+
+### Problems Encountered
+- Blackboard enum key remained UNKNOWN despite task execution
+- Behavior Tree debugger initially showed no active actors
+- Enemy slid in idle pose while moving due to locomotion state machine never leaving Idle
+- Run/stop transitions triggered incorrectly during AI movement
+- Upper body/head did not visually follow body rotation
+
+### Solutions / Decisions
+- Created Blueprint Enum asset for Blackboard decision state mapping
+- Fixed AI possession and BT startup to enable debugger actor matching
+- Removed IsAccelerating from locomotion transition rules and replaced with speed thresholds
+- Enabled OrientRotationToMovement and disabled controller yaw for AI characters
+- Accepted head/upper-body follow issue as visual polish to be addressed later
+
+### Next Actions
+- Investigate head/upper-body rotation issue (AnimBP layers, bone masks, aim offsets)
+- Optionally add AI focus logic during Attack state to make enemies look at the player
+- Continue AI polish or advance to next combat-related card
+
 
 ------------------------------------------------------------------------
 
