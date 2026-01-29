@@ -51,6 +51,9 @@ struct FIroncladDamageSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
 	FHitResult Hit;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
+	FVector HitLocation = FVector::ZeroVector;
+
 	// Convenience: call after filling BaseAmount + modifiers.
 	void Finalize()
 	{

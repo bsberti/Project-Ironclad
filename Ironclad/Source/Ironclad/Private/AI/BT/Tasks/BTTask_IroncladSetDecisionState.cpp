@@ -5,7 +5,7 @@
 
 UBTTask_IroncladSetDecisionState::UBTTask_IroncladSetDecisionState()
 {
-	NodeName = TEXT("Ironclad: Set Decision State (LOG TEST)");
+	NodeName = TEXT("Ironclad: Set Decision State");
 }
 
 EBTNodeResult::Type UBTTask_IroncladSetDecisionState::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
