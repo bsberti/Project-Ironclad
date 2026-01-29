@@ -1,5 +1,11 @@
 #include "AI/BT/Services/BTS_IroncladUpdateTargetMetrics.h"
+
 #include "BehaviorTree/BlackboardComponent.h"
+
+#include "Characters/IroncladCharacterBase.h"
+
+#include "Components/IroncladVitalsComponent.h"
+
 #include "AIController.h"
 #include "GameFramework/Pawn.h"
 
@@ -30,6 +36,27 @@ void UBTS_IroncladUpdateTargetMetrics::TickNode(UBehaviorTreeComponent& OwnerCom
 	{
 		BB->SetValueAsFloat(DistanceToTargetKey.SelectedKeyName, TNumericLimits<float>::Max());
 		return;
+	}
+
+	AIroncladCharacterBase* TargetChar = Cast<AIroncladCharacterBase>(Target);
+	if (TargetChar)
+	{
+		UIroncladVitalsComponent* Vitals = TargetChar->GetVitals();
+		if (Vitals && Vitals->IsDead())
+		{
+			BB->SetValueAsBool(HasTargetKey.SelectedKeyName, false);
+			BB->ClearValue(TargetActorKey.SelectedKeyName);
+
+			// Reset metrics to avoid stale “in range” conditions
+			BB->SetValueAsFloat(DistanceToTargetKey.SelectedKeyName, TNumericLimits<float>::Max());
+
+			if (AIC)
+			{
+				AIC->StopMovement();
+				AIC->ClearFocus(EAIFocusPriority::Gameplay);
+			}
+			return;
+		}
 	}
 
 	const float Dist = FVector::Dist(Pawn->GetActorLocation(), Target->GetActorLocation());

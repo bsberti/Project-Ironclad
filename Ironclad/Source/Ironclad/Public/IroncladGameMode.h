@@ -18,6 +18,9 @@ public:
 	
 	/** Constructor */
 	AIroncladGameMode();
+
+	UFUNCTION()
+	void RequestRespawn(AController* Controller, float DelaySeconds = 2.0f);
 };
 
 

@@ -242,6 +242,8 @@ protected:
         FName SectionName = NAME_None
     );
 
+    virtual void HandleDeath() override;
+
     virtual void Tick(float DeltaSeconds) override;
     
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "LockOn")

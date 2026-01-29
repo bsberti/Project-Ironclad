@@ -7,9 +7,11 @@
 #include "EnhancedInputSubsystems.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
+#include "IroncladGameMode.h"
 
 #include "Perception/AISense_Hearing.h"
 
+#include "GameFramework/GameModeBase.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -67,6 +69,8 @@ AIroncladPlayerCharacter::AIroncladPlayerCharacter()
 
 void AIroncladPlayerCharacter::BeginPlay()
 {
+    UE_LOG(LogTemp, Warning, TEXT("[Player] BeginPlay: %s (%p)"), *GetName(), this);
+
     Super::BeginPlay();
 
     if (CameraBoom)
@@ -1009,6 +1013,25 @@ void AIroncladPlayerCharacter::DebugMakeNoise()
     UAISense_Hearing::ReportNoiseEvent(GetWorld(), Loc, 1.0f, this, 0.0f, TEXT("PlayerDebugNoise"));
 
     UE_LOG(LogIroncladPerception, Log, TEXT("[Perception][Player] Noise emitted at %s"), *Loc.ToString());
+}
+
+void AIroncladPlayerCharacter::HandleDeath()
+{
+    Super::HandleDeath();
+
+    AController* OwningController = GetController();
+    if (!OwningController) return;
+
+    // Important: stop controlling this dead pawn
+    DetachFromControllerPendingDestroy();
+
+    // Ensure dead pawn can't linger and keep weird state/collision
+    SetLifeSpan(2.1f);
+
+    if (AIroncladGameMode* GM = GetWorld() ? Cast<AIroncladGameMode>(GetWorld()->GetAuthGameMode()) : nullptr)
+    {
+        GM->RequestRespawn(OwningController, 2.0f);
+    }
 }
 
 // ------------------------------------------
