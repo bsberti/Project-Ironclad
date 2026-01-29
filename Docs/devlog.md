@@ -642,6 +642,37 @@ applicable.
 - Optionally add AI focus logic during Attack state to make enemies look at the player
 - Continue AI polish or advance to next combat-related card
 
+## \[2026-01-29\] — Phase 3 / Enemy Aggressor
+
+### Session Goals
+- Complete Aggressor enemy combat loop and stabilize death/respawn behavior.
+
+### Work Completed
+- Enemy chase → attack → damage loop fully functional.
+- Weapon system reused without enemy-specific duplication.
+- Behavior Tree corrected to clear target on player death.
+- Player respawn system implemented via GameMode.
+- Death pipeline fixed to prevent animation/collision corruption.
+
+### Technical Notes
+- Shared ANS hit window works for both player and AI.
+- WeaponComponent stays out of CharacterBase by design.
+- BT decorators corrected to use proper key semantics.
+- Controller detachment required to avoid reviving dead pawn state.
+
+### Problems Encountered
+- Enemy continued attacking dead player.
+- BT key mismatch prevented return behavior.
+- Respawn reused dead pawn state causing animation/collision bugs.
+
+### Solutions / Decisions
+- Target cleared in metrics service when victim is dead.
+- Decorators switched to object key gating.
+- Player overrides HandleDeath to request respawn.
+- Dead pawn explicitly detached and destroyed.
+
+### Next Actions
+- Start Card 3.5 — Enemy Type B: Controller
 
 ------------------------------------------------------------------------
 
