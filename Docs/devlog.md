@@ -674,6 +674,41 @@ applicable.
 ### Next Actions
 - Start Card 3.5 — Enemy Type B: Controller
 
+## [2026-01-30] — Phase 3 / Enemy AI Expansion
+
+### Session Goals
+- Implement a second enemy archetype with distinct tactical behavior and integrate it into the existing AI architecture.
+
+### Work Completed
+- Created the Controller enemy archetype focused on zoning and distance control. 
+- Implemented a dedicated Behavior Tree subtree, tactical evaluation service, and movement logic that maintains a combat ring via retreat/orbit positioning. 
+- Added a Place Zone task and a ControlZone actor that applies a slow effect with safe stacking and restoration. 
+- Integrated controller behavior into the shared blackboard system and validated coexistence with the Aggressor enemy. Added debug visualization and logs to confirm zone placement and overlap behavior.
+
+### Technical Notes
+- Controller logic is driven by blackboard keys for desired range, tolerance, cooldown timing, and tactical flags. 
+- Services continuously update target metrics and movement goals. 
+- The zone actor manages movement debuffs independently from the enemy, allowing persistent area effects without polluting enemy logic. 
+- Focus tasks ensure the enemy maintains orientation toward the target, stabilizing perception and preventing unintended target drops.
+
+### Problems Encountered
+- Zone placement initially failed due to missing class assignment and incorrect blackboard key binding. 
+- NavigationSystem linker errors blocked movement service compilation. 
+- Controller enemies were dropping targets when orbiting because they weren’t maintaining focus on the player. 
+- Cooldown values were misread due to incorrect key selection.
+
+### Solutions / Decisions
+- Explicitly assigned zone class in the BT node and verified blackboard selectors. 
+- Added NavigationSystem to module dependencies. 
+- Implemented custom focus tasks to maintain orientation toward the target. 
+- Added debug sphere visualization and logging to confirm zone spawn and overlap behavior. 
+- Standardized blackboard defaults to prevent invalid cooldown states.
+
+### Next Actions
+- Polish controller movement feel and add visual telegraphing for zone placement. 
+- Begin expanding ranged pressure behavior and continue AI roster development.
+
+
 ------------------------------------------------------------------------
 
 # Best Practices
