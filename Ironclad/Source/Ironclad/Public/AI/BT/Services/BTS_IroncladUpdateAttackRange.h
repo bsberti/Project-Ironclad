@@ -15,10 +15,16 @@ public:
 protected:
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
-	// Blackboard keys
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector TargetActorKey;
 
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector AttackRangeKey;
+
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector InAttackRangeKey;
+
+	// Optional safety if AttackRange is unset/0
+	UPROPERTY(EditAnywhere, Category = "Tuning")
+	float FallbackAttackRange = 150.0f;
 };

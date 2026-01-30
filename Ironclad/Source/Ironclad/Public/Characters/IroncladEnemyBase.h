@@ -24,9 +24,6 @@ public:
 	EIroncladFaction Faction = EIroncladFaction::Hostile;
 
 protected:
-	// Placeholder hook for Card 3.7 (reactions/stagger)
-	UFUNCTION(BlueprintNativeEvent, Category = "Ironclad|Enemy")
-	void OnHitReceived();
 	virtual void OnHitReceived_Implementation();
 
 	// Override shared death baseline to allow enemy-specific policy

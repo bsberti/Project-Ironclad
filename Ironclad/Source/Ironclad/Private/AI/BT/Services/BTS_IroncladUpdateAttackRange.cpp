@@ -2,13 +2,18 @@
 
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Characters/IroncladAggressorEnemy.h"
+#include "GameFramework/Pawn.h"
 
 UBTS_IroncladUpdateAttackRange::UBTS_IroncladUpdateAttackRange()
 {
-	NodeName = TEXT("Update Attack Range");
+	NodeName = TEXT("Ironclad: Update Attack Range");
+	bNotifyTick = true;
 	Interval = 0.15f;
 	RandomDeviation = 0.0f;
+
+	TargetActorKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTS_IroncladUpdateAttackRange, TargetActorKey), AActor::StaticClass());
+	AttackRangeKey.AddFloatFilter(this, GET_MEMBER_NAME_CHECKED(UBTS_IroncladUpdateAttackRange, AttackRangeKey));
+	InAttackRangeKey.AddBoolFilter(this, GET_MEMBER_NAME_CHECKED(UBTS_IroncladUpdateAttackRange, InAttackRangeKey));
 }
 
 void UBTS_IroncladUpdateAttackRange::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
@@ -16,15 +21,10 @@ void UBTS_IroncladUpdateAttackRange::TickNode(UBehaviorTreeComponent& OwnerComp,
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
 	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
-	if (!BB) return;
-
 	AAIController* AIC = OwnerComp.GetAIOwner();
-	if (!AIC) return;
-
-	AIroncladAggressorEnemy* Enemy = Cast<AIroncladAggressorEnemy>(AIC->GetPawn());
-	if (!Enemy)
+	APawn* Pawn = AIC ? AIC->GetPawn() : nullptr;
+	if (!BB || !Pawn)
 	{
-		BB->SetValueAsBool(InAttackRangeKey.SelectedKeyName, false);
 		return;
 	}
 
@@ -35,8 +35,14 @@ void UBTS_IroncladUpdateAttackRange::TickNode(UBehaviorTreeComponent& OwnerComp,
 		return;
 	}
 
-	const float Dist = FVector::Dist(Enemy->GetActorLocation(), Target->GetActorLocation());
-	const bool bInRange = Dist <= Enemy->GetAttackRange();
+	float Range = BB->GetValueAsFloat(AttackRangeKey.SelectedKeyName);
+	if (Range <= 0.0f)
+	{
+		Range = FallbackAttackRange;
+	}
+
+	const float Dist = FVector::Dist(Pawn->GetActorLocation(), Target->GetActorLocation());
+	const bool bInRange = (Dist <= Range);
 
 	BB->SetValueAsBool(InAttackRangeKey.SelectedKeyName, bInRange);
 }

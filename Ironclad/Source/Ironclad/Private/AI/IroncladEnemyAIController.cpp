@@ -4,6 +4,8 @@
 #include "BehaviorTree/BlackboardComponent.h"
 
 #include "Characters/IroncladPlayerCharacter.h"
+#include "Characters/IroncladAggressorEnemy.h"
+#include "Characters/IroncladControllerEnemy.h"
 
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
@@ -12,6 +14,8 @@
 #include "Perception/AISense_Hearing.h"
 
 #include "GameFramework/Character.h"
+
+static const FName BBKey_EnemyArchetype(TEXT("EnemyArchetype"));
 
 AIroncladEnemyAIController::AIroncladEnemyAIController()
 {
@@ -243,4 +247,13 @@ void AIroncladEnemyAIController::OnPossess(APawn* InPawn)
 	BlackboardComp->SetValueAsFloat(TEXT("AttackRange"), 200.f);
 
 	RunBehaviorTree(BehaviorTreeAsset);
+
+	// --- Set archetype based on possessed pawn class ---
+	uint8 ArchetypeValue = 0; // Aggressor default
+	if (Cast<AIroncladControllerEnemy>(InPawn))
+	{
+		ArchetypeValue = 1; // Controller
+	}
+
+	BlackboardComp->SetValueAsEnum(BBKey_EnemyArchetype, ArchetypeValue);
 }

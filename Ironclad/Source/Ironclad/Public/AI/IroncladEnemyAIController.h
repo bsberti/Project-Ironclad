@@ -47,8 +47,8 @@ protected:
 	void SetCurrentTarget(AActor* NewTarget, const FString& Reason);
 	void ClearCurrentTarget(const FString& Reason);
 
-	void OnPossess(APawn* InPawn);
-
+	virtual void OnPossess(APawn* InPawn) override;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	UBehaviorTree* BehaviorTreeAsset = nullptr;
 

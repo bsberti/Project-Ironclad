@@ -19,7 +19,8 @@ public class Ironclad : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
-			"GameplayTags"
+            "NavigationSystem",
+            "GameplayTags"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
