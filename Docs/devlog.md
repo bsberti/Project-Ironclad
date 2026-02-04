@@ -743,20 +743,11 @@ applicable.
 
 # Best Practices
 
--   Keep entries concise but technical\
--   Document *why* decisions were made\
--   Capture architectural changes immediately\
--   Include performance considerations when relevant\
+-   Keep entries concise but technical
+-   Document *why* decisions were made
+-   Capture architectural changes immediately
+-   Include performance considerations when relevant
 -   Reference specific systems, classes, or files when possible
-
-------------------------------------------------------------------------
-
-# Portfolio Usage
-
-This devlog will later be used to: - Write postmortems\
-- Prepare technical interviews\
-- Populate portfolio case studies\
-- Demonstrate professional development habits
 
 ------------------------------------------------------------------------
 
