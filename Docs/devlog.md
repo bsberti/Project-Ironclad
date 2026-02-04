@@ -674,7 +674,7 @@ applicable.
 ### Next Actions
 - Start Card 3.5 — Enemy Type B: Controller
 
-## [2026-01-30] — Phase 3 / Enemy AI Expansion
+## \[2026-01-30\] — Phase 3 / Enemy AI Expansion
 
 ### Session Goals
 - Implement a second enemy archetype with distinct tactical behavior and integrate it into the existing AI architecture.
@@ -707,6 +707,36 @@ applicable.
 ### Next Actions
 - Polish controller movement feel and add visual telegraphing for zone placement. 
 - Begin expanding ranged pressure behavior and continue AI roster development.
+
+## \[2026-02-04\] — Phase 3 / Enemy AI Expansion
+
+### Session Goals
+- Implement enemy Reactions, Stagger, and Death
+
+### Work Completed
+- Integrated CombatGate into AIroncladCharacterBase, making combat gating fully shared between player and enemies
+- Refactored aggressor enemy attacks to go through CombatGate::RequestAction, enabling stamina checks and reaction locks
+- Verified that stagger reactions now correctly interrupt and block enemy attacks
+- Ensured AI attacks consume stamina and are rejected when stamina is insufficient
+- Fixed issue where enemies continued attacking after death by stopping AI brain logic and cancelling active attacks
+
+### Technical Notes
+- Enemy BT tasks now act as action requesters rather than executors
+- Attack montages only play after combat gate acceptance
+- Added montage/state guards to prevent repeated attack attempts while an attack is already playing
+- Combat state transitions are now authoritative for both player and AI
+
+### Problems Encountered
+- Enemy attack animations continued playing when stamina was depleted
+- Dead enemies could still request and play attack animations
+
+### Solutions / Decisions
+- Centralized combat arbitration through CombatGate
+- Added explicit death and montage guards to block invalid attack execution
+- Stopped AI behavior tree logic on death to prevent post-death interaction
+
+### Next Actions
+- Card 3.8 — AI Debug & Tuning Tools
 
 
 ------------------------------------------------------------------------
