@@ -143,9 +143,6 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     class UCameraComponent* FollowCamera;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
-    UIroncladCombatGateComponent* CombatGate;
-
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Combo", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<UIroncladComboComponent> ComboComponent = nullptr;
 

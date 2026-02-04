@@ -23,19 +23,27 @@ bool AIroncladAggressorEnemy::TryStartAttack(AActor* TargetActor)
 {
 	//UE_LOG(LogTemp, Log, TEXT("[Aggressor] %s attempting attack on %s"), *GetName(), TargetActor ? *TargetActor->GetName() : TEXT("null"));
 
-	if (!TargetActor || !IsValid(TargetActor))
-	{
+	if (!TargetActor || !IsValid(TargetActor)) {
 		return false;
 	}
 
-	if (bIsAttacking)
-	{
+	if (bIsAttacking) {
 		return false;
 	}
 
-	if (!AttackMontage)
-	{
+	if (!AttackMontage) {
 		UE_LOG(LogTemp, Warning, TEXT("[Aggressor] AttackMontage not set on %s"), *GetName());
+		return false;
+	}
+
+	if (IsDead()) {
+		return false;
+	}
+	UIroncladCombatGateComponent* Gate = GetCombatGate();
+	if (Gate) {
+		if (Gate->IsReactionLocked()) return false; // optional, but makes intent explicit
+	} else {
+		UE_LOG(LogTemp, Warning, TEXT("[Aggressor] CombatGate missing on %s"), *GetName());
 		return false;
 	}
 
@@ -48,6 +56,17 @@ bool AIroncladAggressorEnemy::TryStartAttack(AActor* TargetActor)
 	const float Dist = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
 	if (Dist > AttackRange)
 	{
+		return false;
+	}
+
+	// === CombatGate arbitration (THIS enables stagger to block attacks) ===
+	const ECombatAction Action = ECombatAction::LightAttack;
+	const ECombatState EnterState = ECombatState::Attacking; // adapt if your enum differs
+
+	const bool bAccepted = Gate->RequestAction(Action, 20.0f, EnterState, FName(TEXT("AI_Attack")));
+	if (!bAccepted)
+	{
+		// This is where ReactionLocked (stagger) will reject the attack request.
 		return false;
 	}
 
@@ -68,29 +87,46 @@ bool AIroncladAggressorEnemy::TryStartAttack(AActor* TargetActor)
 	// Play montage
 	if (UAnimInstance* Anim = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
 	{
+		if (AttackMontage && Anim->Montage_IsPlaying(AttackMontage)) {
+			return false;
+		}
+
 		const float PlayResult = Anim->Montage_Play(AttackMontage, 1.0f);
 		if (PlayResult <= 0.f)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[Aggressor] Montage_Play failed on %s"), *GetName());
-			EndAttack();
+
+			// Roll back: exit attack state
+			bIsAttacking = false;
+			CurrentTarget = nullptr;
+			Gate->SetCombatState(ECombatState::Idle, FName(TEXT("AI_AttackMontageFail")));
 			return false;
 		}
 
-		// Ensure we clear bIsAttacking when montage ends
+		// End -> clear bIsAttacking AND return gate to Idle
 		FOnMontageEnded EndDelegate;
-		EndDelegate.BindLambda([this](UAnimMontage* Montage, bool bInterrupted)
-			{
-				// Only end if it's OUR montage (safety)
-				if (Montage == AttackMontage)
-				{
-					EndAttack();
-				}
-			});
+		EndDelegate.BindUObject(this, &AIroncladAggressorEnemy::OnAttackMontageEnded);
 		Anim->Montage_SetEndDelegate(EndDelegate, AttackMontage);
 	}
 
 	return true;
 }
+
+void AIroncladAggressorEnemy::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != AttackMontage)
+	{
+		return;
+	}
+
+	EndAttack();
+
+	if (UIroncladCombatGateComponent* Gate = GetCombatGate())
+	{
+		Gate->SetCombatState(ECombatState::Idle, FName(bInterrupted ? TEXT("AI_AttackInterrupted") : TEXT("AI_AttackEnded")));
+	}
+}
+
 
 void AIroncladAggressorEnemy::ApplyMeleeHitOnce()
 {

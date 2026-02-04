@@ -35,6 +35,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Ironclad|Enemy|Aggressor")
 	float GetAttackRange() const { return AttackRange; }
 
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 protected:
 	virtual void BeginPlay() override;
 

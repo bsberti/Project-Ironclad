@@ -97,6 +97,14 @@ bool UIroncladCombatGateComponent::TryAcceptAction(ECombatAction Action, float S
         return false;
     }
 
+    if (bReactionLocked)
+    {
+#if !UE_BUILD_SHIPPING
+        DebugReject(DebugLabel, TEXT("Rejected: Reaction locked"));
+#endif
+        return false;
+    }
+
     const ECombatState FromState = CombatState;
 
     // Commit: consume cost + transition state

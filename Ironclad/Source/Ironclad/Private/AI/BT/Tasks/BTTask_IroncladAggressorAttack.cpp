@@ -35,6 +35,11 @@ EBTNodeResult::Type UBTTask_IroncladAggressorAttack::ExecuteTask(UBehaviorTreeCo
 		return EBTNodeResult::Failed;
 	}
 
+	if (Enemy->IsDead())
+	{
+		return EBTNodeResult::Failed;
+	}
+
 	const bool bStarted = Enemy->TryStartAttack(Target);
 	return bStarted ? EBTNodeResult::Succeeded : EBTNodeResult::Failed;
 }

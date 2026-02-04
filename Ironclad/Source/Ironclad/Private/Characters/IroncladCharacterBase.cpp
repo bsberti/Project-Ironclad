@@ -2,10 +2,14 @@
 
 #include "Animation/AnimInstance.h"
 #include "TimerManager.h"
+#include "AIController.h"
+#include "BrainComponent.h"
+#include "Animation/AnimInstance.h"
 
 #include "Combat/Damage/IroncladDamageReceiverComponent.h"
 
 #include "Components/IroncladVitalsComponent.h"
+
 #include "GameFramework/CharacterMovementComponent.h"
 
 AIroncladCharacterBase::AIroncladCharacterBase()
@@ -13,7 +17,8 @@ AIroncladCharacterBase::AIroncladCharacterBase()
     PrimaryActorTick.bCanEverTick = true;
 
     VitalsComponent = CreateDefaultSubobject<UIroncladVitalsComponent>(TEXT("VitalsComponent"));
-    DamageReceiver = CreateDefaultSubobject<UIroncladDamageReceiverComponent>(TEXT("DamageReceiver"));
+    DamageReceiver = CreateDefaultSubobject<UIroncladDamageReceiverComponent>(TEXT("DamageReceiver")); 
+	CombatGate = CreateDefaultSubobject<UIroncladCombatGateComponent>(TEXT("CombatGate"));
 
 	CurrentPoise = MaxPoise;
 }
@@ -108,11 +113,31 @@ void AIroncladCharacterBase::HandleDeath()
 
     bDeathHandled = true;
 
+	SetActionLockForReaction(true);
+
     if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
     {
         MoveComp->DisableMovement();
         MoveComp->StopMovementImmediately();
     }
+
+	// Stop AI logic (CRITICAL: prevents BT from calling attack tasks forever)
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		AIC->StopMovement();
+		AIC->ClearFocus(EAIFocusPriority::Gameplay);
+
+		if (UBrainComponent* Brain = AIC->GetBrainComponent())
+		{
+			Brain->StopLogic(TEXT("Death"));
+		}
+	}
+
+	// Stop any active montages before death montage (prevents “attack montage fighting death montage”)
+	if (UAnimInstance* AnimInst = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		AnimInst->StopAllMontages(0.05f);
+	}
 
     SetActorEnableCollision(false);
 
@@ -151,6 +176,8 @@ void AIroncladCharacterBase::TryPlayHitReaction(const FIroncladDamageSpec& Spec,
 
 	EIroncladHitReactionKind Kind = ClassifyReactionKind(Spec);
 
+	bool bIsStagger = (Kind == EIroncladHitReactionKind::Stagger);
+
 	// Refined stagger: poise break
 	if (bUsePoise)
 	{
@@ -159,46 +186,82 @@ void AIroncladCharacterBase::TryPlayHitReaction(const FIroncladDamageSpec& Spec,
 		if (bTriggeredStagger)
 		{
 			Kind = EIroncladHitReactionKind::Stagger;
+			bIsStagger = true;
 		}
 	}
 
 	UAnimMontage* MontageToPlay = SelectReactionMontage(Kind);
-	UE_LOG(LogIroncladDamage, Warning,
-		TEXT("[Damage] TryPlayHitReaction: Kind=%d Montage=%s"),
-		(int32)Kind,
-		*GetNameSafe(MontageToPlay)
-	);
-
 	if (!MontageToPlay)
 	{
 		return; // No montage assigned; silent fail is fine for now
 	}
 
 	USkeletalMeshComponent* MeshComp = GetMesh();
-	UE_LOG(LogIroncladDamage, Warning,
-		TEXT("[Damage] TryPlayHitReaction: Mesh=%s AnimClass=%s AnimInst=%s"),
-		*GetNameSafe(MeshComp),
-		MeshComp ? *GetNameSafe(MeshComp->GetAnimClass()) : TEXT("None"),
-		MeshComp && MeshComp->GetAnimInstance() ? *GetNameSafe(MeshComp->GetAnimInstance()) : TEXT("None")
-	);
-
-	if (!MontageToPlay || !MeshComp || !MeshComp->GetAnimInstance())
+	UAnimInstance* AnimInst = MeshComp->GetAnimInstance();
+	if (!MontageToPlay || !MeshComp || !MeshComp->GetAnimInstance() || !AnimInst)
 	{
 		UE_LOG(LogIroncladDamage, Error, TEXT("[Damage] TryPlayHitReaction: Abort (missing montage/mesh/animinstance)"));
 		return;
 	}
 
-	UAnimInstance* AnimInst = MeshComp->GetAnimInstance();
-	const float PlayResult = AnimInst->Montage_Play(MontageToPlay, 1.0f);
+	// --- NEW: if stagger, block actions and interrupt current montages BEFORE playing reaction ---
+	if (bIsStagger)
+	{
+		SetActionLockForReaction(true);
 
-	UE_LOG(LogIroncladDamage, Warning,
-		TEXT("[Damage] TryPlayHitReaction: Montage_Play returned %0.3f"),
-		PlayResult
-	);
+		// Interrupt ongoing attack/action montages so stagger truly “wins”
+		// This is blunt but effective. Later you can stop only “action” montages if you track them.
+		AnimInst->StopAllMontages(0.1f);
+	}
+
+	const float PlayResult = AnimInst->Montage_Play(MontageToPlay, 1.0f);
 
 	if (PlayResult > 0.f)
 	{
 		SetReactingLocked();
+
+		BindReactionMontageEnd(AnimInst, MontageToPlay, bIsStagger);
+	}
+	else
+	{
+		// If we locked but failed to play, don't leave the gate locked.
+		if (bIsStagger)
+		{
+			SetActionLockForReaction(false);
+		}
+	}
+}
+
+void AIroncladCharacterBase::BindReactionMontageEnd(UAnimInstance* AnimInst, UAnimMontage* Montage, bool bWasStagger)
+{
+	if (!AnimInst || !Montage) return;
+
+	bLastReactionWasStagger = bWasStagger;
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &AIroncladCharacterBase::OnReactionMontageEnded);
+
+	AnimInst->Montage_SetEndDelegate(EndDelegate, Montage);
+}
+
+void AIroncladCharacterBase::OnReactionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	// Your existing reacting unlock probably lives elsewhere; don't break it.
+	// Only unlock the combat-gate reaction lock if this reaction was stagger.
+	if (bLastReactionWasStagger && bReactionActionLocked)
+	{
+		SetActionLockForReaction(false);
+	}
+
+	bLastReactionWasStagger = false;
+}
+
+void AIroncladCharacterBase::SetActionLockForReaction(bool bLocked)
+{
+	if (UIroncladCombatGateComponent* Gate = GetCombatGate())
+	{
+		Gate->SetReactionLocked(bLocked);
+		bReactionActionLocked = bLocked;
 	}
 }
 

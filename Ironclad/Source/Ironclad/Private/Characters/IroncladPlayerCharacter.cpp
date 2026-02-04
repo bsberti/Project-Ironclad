@@ -60,7 +60,6 @@ AIroncladPlayerCharacter::AIroncladPlayerCharacter()
     PrimaryActorTick.bCanEverTick = true;
     GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
-    CombatGate = CreateDefaultSubobject<UIroncladCombatGateComponent>(TEXT("CombatGate"));
 	CombatTuning = CreateDefaultSubobject<UIroncladCombatTuningDataAsset>(TEXT("CombatTuning"));
     WeaponComponent = CreateDefaultSubobject<UIroncladWeaponComponent>(TEXT("WeaponComponent"));
     ComboComponent = CreateDefaultSubobject<UIroncladComboComponent>(TEXT("ComboComponent"));
@@ -112,10 +111,10 @@ void AIroncladPlayerCharacter::BeginPlay()
         }
     }
 
-    if (CombatGate)
+    if (UIroncladCombatGateComponent* Gate = GetCombatGate())
     {
         // Bind ONCE here.
-        CombatGate->OnCombatActionAccepted.AddDynamic(
+        Gate->OnCombatActionAccepted.AddDynamic(
             this,
             &AIroncladPlayerCharacter::HandleCombatActionAccepted
         );
@@ -268,10 +267,10 @@ void AIroncladPlayerCharacter::EndDodge(const TCHAR* Reason)
         Move->BrakingDecelerationWalking = SavedBrakingDecel;
     }
 
-    if (CombatGate)
+    if (UIroncladCombatGateComponent* Gate = GetCombatGate())
     {
         // Use whatever your “ready” state is called; adjust if not Idle.
-        CombatGate->SetCombatState(ECombatState::Idle, Reason);
+        Gate->SetCombatState(ECombatState::Idle, Reason);
     }
 }
 
@@ -426,26 +425,27 @@ void AIroncladPlayerCharacter::CycleWeapon()
 
 void AIroncladPlayerCharacter::DebugForceIdleCombatState()
 {
-    if (CombatGate)
+    if (UIroncladCombatGateComponent* Gate = GetCombatGate())
     {
-        CombatGate->DebugForceIdle();
+        Gate->DebugForceIdle();
     }
 }
 
 void AIroncladPlayerCharacter::OnLightAttackPressed()
 {
-    if (!CombatGate || !CombatTuning || !ComboComponent)
+    UIroncladCombatGateComponent* Gate = GetCombatGate();
+    if (!Gate || !CombatTuning || !ComboComponent)
     {
         return;
     }
 
     const float StaminaCost = CombatTuning->Light.StaminaCost;
-    const ECombatState CurrentState = CombatGate->GetCombatState();
+    const ECombatState CurrentState = Gate->GetCombatState();
 
     // Case 1: Idle -> entering combat, must gate + spend stamina
     if (CurrentState == ECombatState::Idle)
     {
-        if (!CombatGate->RequestAction(
+        if (!Gate->RequestAction(
             ECombatAction::LightAttack,
             StaminaCost,
             ECombatState::Attacking,
@@ -495,9 +495,9 @@ void AIroncladPlayerCharacter::OnHeavyAttackPressed()
 
 void AIroncladPlayerCharacter::OnDodgePressed()
 {
-    if (CombatGate)
+    if (UIroncladCombatGateComponent* Gate = GetCombatGate())
     {
-        CombatGate->RequestDodge();
+        Gate->RequestDodge();
     }
 }
 
@@ -1112,9 +1112,9 @@ bool AIroncladPlayerCharacter::StartAttackMontage(
     }
 
     // Enter attacking state
-    if (CombatGate)
+    if (UIroncladCombatGateComponent* Gate = GetCombatGate())
     {
-        CombatGate->SetCombatState(ECombatState::Attacking, DebugTag);
+        Gate->SetCombatState(ECombatState::Attacking, DebugTag);
     }
 
     return true;
@@ -1176,11 +1176,11 @@ void AIroncladPlayerCharacter::BeginAttackRecovery()
     // Ensure hit window is OFF when recovery begins (defensive)
     SetHitWindowActive(false);
 
-    if (CombatGate)
+    if (UIroncladCombatGateComponent* Gate = GetCombatGate())
     {
         // Use a consistent reason tag that includes what started it
         // Keep the reason as FName to avoid TCHAR issues
-        CombatGate->SetCombatState(ECombatState::Recovering, FName(TEXT("Attack Recovery Begin")));
+        Gate->SetCombatState(ECombatState::Recovering, FName(TEXT("Attack Recovery Begin")));
     }
 
     const float Recovery = ActiveAttack.RecoverySeconds;
@@ -1207,9 +1207,9 @@ void AIroncladPlayerCharacter::FinishAttackRecovery()
         World->GetTimerManager().ClearTimer(AttackRecoveryTimerHandle);
     }
 
-    if (CombatGate)
+    if (UIroncladCombatGateComponent* Gate = GetCombatGate())
     {
-        CombatGate->SetCombatState(ECombatState::Idle, FName(TEXT("Attack Recovery End")));
+        Gate->SetCombatState(ECombatState::Idle, FName(TEXT("Attack Recovery End")));
     }
 
     UE_LOG(LogTemp, Log, TEXT("Attack recovery finished -> exiting to Idle. (%s)"),

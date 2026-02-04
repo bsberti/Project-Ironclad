@@ -2,11 +2,14 @@
 
 #include "Combat/Damage/IroncladDamageable.h"
 
+#include "Components/IroncladCombatGateComponent.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "IroncladCharacterBase.generated.h"
 
 class UIroncladVitalsComponent;
+class UIroncladCombatGateComponent;
 
 UENUM(BlueprintType)
 enum class EIroncladHitReactionKind : uint8
@@ -41,6 +44,9 @@ public:
     UFUNCTION(BlueprintPure, Category = "Vitals")
     UIroncladVitalsComponent* GetVitals() const { return VitalsComponent; }
 
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	UIroncladCombatGateComponent* GetCombatGate() const { return CombatGate; }
+
     virtual void Tick(float DeltaTime) override;
 
 protected:
@@ -48,6 +54,21 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UIroncladVitalsComponent* VitalsComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UIroncladCombatGateComponent> CombatGate;
+
+	// Optional: track whether we locked because of stagger, so we only unlock when needed
+	bool bReactionActionLocked = false;
+
+	void SetActionLockForReaction(bool bLocked);
+
+	void BindReactionMontageEnd(UAnimInstance* AnimInst, UAnimMontage* Montage, bool bWasStagger);
+
+	UFUNCTION()
+	void OnReactionMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	bool bLastReactionWasStagger = false;
 
     // One-shot latch so we never run death twice.
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Damage")

@@ -73,6 +73,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Gating")
     float MinTimeBetweenAcceptedActions = 0.05f;
 
+    void SetReactionLocked(bool bLocked) { bReactionLocked = bLocked; }
+    bool IsReactionLocked() const { return bReactionLocked; }
+
 protected:
     virtual void BeginPlay() override;
 
@@ -84,6 +87,8 @@ private:
     UIroncladVitalsComponent* CachedVitals = nullptr;
 
     float LastAcceptedTime = -FLT_MAX;
+
+    bool bReactionLocked = false;
 
     // Cost + Rules
     bool TryAcceptAction(ECombatAction Action, float StaminaCost, ECombatState StateToEnter, const TCHAR* DebugLabel); public:
