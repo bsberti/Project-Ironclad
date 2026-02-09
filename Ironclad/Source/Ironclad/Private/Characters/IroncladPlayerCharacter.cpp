@@ -948,6 +948,16 @@ void AIroncladPlayerCharacter::Tick(float DeltaSeconds)
 void AIroncladPlayerCharacter::ToggleLockOnDebug()
 {
     bDebugLockOn = !bDebugLockOn;
+
+    IConsoleVariable* Var = IConsoleManager::Get().FindConsoleVariable(TEXT("ironclad.ai.debug"));
+    if (!Var) return;
+
+    const int32 Current = Var->GetInt();
+    const int32 Next = (Current == 0) ? 1 : 0;
+    Var->Set(Next, ECVF_SetByGameSetting);
+
+    UE_LOG(LogTemp, Log, TEXT("[Ironclad] AI Debug %s"), Next ? TEXT("ENABLED") : TEXT("DISABLED"));
+
     UE_LOG(LogIroncladLockOn, Log, TEXT("Debug %s"), bDebugLockOn ? TEXT("ON") : TEXT("OFF"));
 }
 

@@ -11,8 +11,11 @@
 class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
 class UAISenseConfig_Hearing;
+class UBlackboardComponent;
+class UBehaviorTree;
+class UBehaviorTreeComponent;
 
-DEFINE_LOG_CATEGORY_STATIC(LogIroncladPerception, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogIroncladPerception, Log, All);
 
 UCLASS()
 class IRONCLAD_API AIroncladEnemyAIController : public AAIController
@@ -24,6 +27,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnPossess(APawn* InPawn) override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception")
 	TObjectPtr<UAIPerceptionComponent> AIPerception;
@@ -46,8 +51,6 @@ protected:
 
 	void SetCurrentTarget(AActor* NewTarget, const FString& Reason);
 	void ClearCurrentTarget(const FString& Reason);
-
-	virtual void OnPossess(APawn* InPawn) override;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	UBehaviorTree* BehaviorTreeAsset = nullptr;
@@ -57,4 +60,11 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "AI")
 	UBehaviorTreeComponent* BehaviorTreeComp = nullptr;
+
+private:
+	// --- Debug helpers ---
+	void DrawAIDebug() const;
+	FString BuildDebugText() const;
+
+	bool BlackboardHasKey(const FName& KeyName) const;
 };
