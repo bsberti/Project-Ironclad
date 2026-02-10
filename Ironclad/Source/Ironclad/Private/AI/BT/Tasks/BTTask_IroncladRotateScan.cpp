@@ -28,6 +28,11 @@ EBTNodeResult::Type UBTTask_IroncladRotateScan::ExecuteTask(UBehaviorTreeCompone
 	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
 	if (!BB) return EBTNodeResult::Failed;
 
+	UE_LOG(LogTemp, Warning, TEXT("RotateScan START: EndTime=%.2f MinYaw=%.1f MaxYaw=%.1f"),
+		BB->GetValueAsFloat(TEXT("SearchEndTime")),
+		BB->GetValueAsFloat(TEXT("SearchMinYaw")),
+		BB->GetValueAsFloat(TEXT("SearchMaxYaw")));
+
 	AAIController* AI = OwnerComp.GetAIOwner();
 	APawn* Pawn = AI ? AI->GetPawn() : nullptr;
 	if (!AI || !Pawn) return EBTNodeResult::Failed;
@@ -69,8 +74,22 @@ void UBTTask_IroncladRotateScan::TickTask(UBehaviorTreeComponent& OwnerComp, uin
 	const float Now = Pawn->GetWorld() ? Pawn->GetWorld()->GetTimeSeconds() : 0.0f;
 	const float EndTime = BB->GetValueAsFloat(SearchEndTimeKey);
 
+	static float LastLog = 0.0f;
+	if (Now - LastLog > 0.5f)
+	{
+		LastLog = Now;
+		UE_LOG(LogTemp, Warning, TEXT("RotateScan TICK: Now=%.2f EndTime=%.2f Dir=%d"),
+			Now,
+			BB->GetValueAsFloat(TEXT("SearchEndTime")),
+			BB->GetValueAsInt(TEXT("SearchDir")));
+	}
+
 	if (Now >= EndTime)
 	{
+		// End search and start return-home immediately
+		BB->SetValueAsBool(TEXT("ShouldSearch"), false);
+		BB->SetValueAsBool(TEXT("IsReturningHome"), true);
+
 		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		return;
 	}
@@ -88,6 +107,7 @@ void UBTTask_IroncladRotateScan::TickTask(UBehaviorTreeComponent& OwnerComp, uin
 	FRotator NewRot = AI->GetControlRotation();
 	NewRot.Yaw = NewYaw;
 	AI->SetControlRotation(NewRot);
+	UE_LOG(LogTemp, Warning, TEXT("Yaw: %.1f"), AI->GetControlRotation().Yaw);
 
 	// Flip direction when we reach the bound (within tolerance)
 	const float Remaining = FMath::Abs(FMath::FindDeltaAngleDegrees(NewYaw, TargetYaw));

@@ -249,31 +249,22 @@ void AIroncladEnemyAIController::DrawAIDebug() const
 
 void AIroncladEnemyAIController::OnPerceptionUpdated(const TArray<AActor*>& UpdatedActors)
 {
-	// Super::OnPerceptionUpdated(UpdatedActors);
+	UE_LOG(LogIroncladPerception, Display, TEXT("%s UpdatedActors=%d"),
+		*IC_PercPrefix(this), UpdatedActors.Num());
 
-	// Keep your logging
-	FString Names;
-	for (AActor* A : UpdatedActors)
+	if (!BlackboardComp || !GetPerceptionComponent())
 	{
-		if (!Names.IsEmpty()) Names += TEXT(", ");
-		Names += GetNameSafe(A);
+		return;
 	}
-	UE_LOG(LogIroncladPerception, Display, TEXT("%s UpdatedActors=%d [%s]"),
-		*IC_PercPrefix(this), UpdatedActors.Num(), *Names);
-
-	if (!BlackboardComp) return;
-
-	AActor* BBTargetActor = Cast<AActor>(BlackboardComp->GetValueAsObject(TEXT("TargetActor")));
 
 	for (AActor* Actor : UpdatedActors)
 	{
-		if (!Actor) continue;
+		if (!IsValid(Actor)) continue;
 		if (!Actor->IsA(AIroncladPlayerCharacter::StaticClass())) continue;
 
 		FActorPerceptionBlueprintInfo Info;
 		GetPerceptionComponent()->GetActorsPerception(Actor, Info);
 
-		// "Sensed" means any stimulus currently active
 		const bool bSensedNow = Info.LastSensedStimuli.ContainsByPredicate(
 			[](const FAIStimulus& S) { return S.WasSuccessfullySensed(); }
 		);
@@ -283,42 +274,63 @@ void AIroncladEnemyAIController::OnPerceptionUpdated(const TArray<AActor*>& Upda
 			BlackboardComp->SetValueAsObject(TEXT("TargetActor"), Actor);
 			BlackboardComp->SetValueAsBool(TEXT("HasTarget"), true);
 			BlackboardComp->SetValueAsVector(TEXT("LastKnownLocation"), Actor->GetActorLocation());
-			const FVector LKL = BlackboardComp->GetValueAsVector(TEXT("LastKnownLocation"));
-			BlackboardComp->SetValueAsVector(TEXT("SearchOrigin"), LKL);
+
+			// IMPORTANT: do NOT set SearchOrigin here. Only set it when starting search.
+			continue;
 		}
-		else
+
+		// Lost stimulus case: only react if this actor is the current BB target
+		AActor* CurrentBBTarget = Cast<AActor>(BlackboardComp->GetValueAsObject(TEXT("TargetActor")));
+		if (Actor != CurrentBBTarget)
 		{
-			// If we lost the current target, clear it
-			if (Actor == BBTargetActor)
+			continue;
+		}
+
+		// Clear target immediately
+		BlackboardComp->ClearValue(TEXT("TargetActor"));
+		BlackboardComp->SetValueAsBool(TEXT("HasTarget"), false);
+
+		// If already searching, don't reinitialize (prevents endless search)
+		if (BlackboardComp->GetValueAsBool(TEXT("ShouldSearch")))
+		{
+			continue;
+		}
+
+		const float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+
+		// Establish SearchOrigin from LastKnownLocation (fallback chain)
+		FVector Origin = BlackboardComp->GetValueAsVector(TEXT("LastKnownLocation"));
+
+		if (Origin.IsNearlyZero() && IsValid(Actor))
+		{
+			Origin = Actor->GetActorLocation();
+			BlackboardComp->SetValueAsVector(TEXT("LastKnownLocation"), Origin);
+		}
+
+		if (Origin.IsNearlyZero())
+		{
+			if (APawn* SelfPawn = GetPawn())
 			{
-				const float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
-
-				// Clear target immediately (stop chase right away)
-				BlackboardComp->ClearValue(TEXT("TargetActor"));
-				BlackboardComp->SetValueAsBool(TEXT("HasTarget"), false);
-
-				// Start search
-				BlackboardComp->SetValueAsBool(TEXT("ShouldSearch"), true);
-				BlackboardComp->SetValueAsBool(TEXT("IsReturningHome"), false);
-
-				// SearchOrigin = last known (already set when sensed; but safe to set again)
-				const FVector LKL = BlackboardComp->GetValueAsVector(TEXT("LastKnownLocation"));
-				BlackboardComp->SetValueAsVector(TEXT("SearchOrigin"), LKL);
-
-				// Search tuning (first pass)
-				constexpr float SearchDuration = 3.0f;
-				constexpr float SearchHalfAngleDeg = 70.0f;
-
-				// Set scan bounds around current facing
-				const APawn* SelfPawn = GetPawn();
-				const float CenterYaw = SelfPawn ? SelfPawn->GetActorRotation().Yaw : GetControlRotation().Yaw;
-
-				BlackboardComp->SetValueAsFloat(TEXT("SearchEndTime"), Now + SearchDuration);
-				BlackboardComp->SetValueAsFloat(TEXT("SearchMinYaw"), CenterYaw - SearchHalfAngleDeg);
-				BlackboardComp->SetValueAsFloat(TEXT("SearchMaxYaw"), CenterYaw + SearchHalfAngleDeg);
-				BlackboardComp->SetValueAsInt(TEXT("SearchDir"), 0); // start by rotating toward min
+				Origin = SelfPawn->GetActorLocation();
+				BlackboardComp->SetValueAsVector(TEXT("LastKnownLocation"), Origin);
 			}
 		}
+
+		BlackboardComp->SetValueAsVector(TEXT("SearchOrigin"), Origin);
+		BlackboardComp->SetValueAsBool(TEXT("ShouldSearch"), true);
+		BlackboardComp->SetValueAsBool(TEXT("IsReturningHome"), false);
+
+		// Initialize scan params
+		constexpr float SearchDuration = 3.0f;
+		constexpr float SearchHalfAngleDeg = 70.0f;
+
+		const APawn* SelfPawn = GetPawn();
+		const float CenterYaw = SelfPawn ? SelfPawn->GetActorRotation().Yaw : GetControlRotation().Yaw;
+
+		BlackboardComp->SetValueAsFloat(TEXT("SearchEndTime"), Now + SearchDuration);
+		BlackboardComp->SetValueAsFloat(TEXT("SearchMinYaw"), CenterYaw - SearchHalfAngleDeg);
+		BlackboardComp->SetValueAsFloat(TEXT("SearchMaxYaw"), CenterYaw + SearchHalfAngleDeg);
+		BlackboardComp->SetValueAsInt(TEXT("SearchDir"), 0);
 	}
 }
 

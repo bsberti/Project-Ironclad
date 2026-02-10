@@ -102,7 +102,7 @@ bool UIroncladVitalsComponent::SpendStamina(float Amount)
         Stamina = FMath::Clamp(Stamina - Amount, 0.f, MaxStamina);
         TimeSinceStaminaSpend = 0.f;
 
-		UE_LOG(LogTemp, Log, TEXT("SpendStamina: Spent %f stamina, now at %f/%f"), Amount, Stamina, MaxStamina);
+		//UE_LOG(LogTemp, Log, TEXT("SpendStamina: Spent %f stamina, now at %f/%f"), Amount, Stamina, MaxStamina);
 
         if (!FMath::IsNearlyEqual(Old, Stamina))
         {
