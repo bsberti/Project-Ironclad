@@ -11,16 +11,19 @@ UBTTask_IroncladRotateScan::UBTTask_IroncladRotateScan()
 	bNotifyTick = true;
 }
 
-static float IC_NormalizeYaw(float Yaw)
+namespace 
 {
-	return FRotator::NormalizeAxis(Yaw);
-}
+	static float IC_NormalizeYaw(float Yaw)
+	{
+		return FRotator::NormalizeAxis(Yaw);
+	}
 
-static float IC_MoveTowardAngle(float CurrentYaw, float TargetYaw, float MaxDelta)
-{
-	const float Delta = FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw);
-	const float Step = FMath::Clamp(Delta, -MaxDelta, MaxDelta);
-	return IC_NormalizeYaw(CurrentYaw + Step);
+	static float IC_MoveTowardAngle(float CurrentYaw, float TargetYaw, float MaxDelta)
+	{
+		const float Delta = FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw);
+		const float Step = FMath::Clamp(Delta, -MaxDelta, MaxDelta);
+		return IC_NormalizeYaw(CurrentYaw + Step);
+	}
 }
 
 EBTNodeResult::Type UBTTask_IroncladRotateScan::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -107,7 +110,7 @@ void UBTTask_IroncladRotateScan::TickTask(UBehaviorTreeComponent& OwnerComp, uin
 	FRotator NewRot = AI->GetControlRotation();
 	NewRot.Yaw = NewYaw;
 	AI->SetControlRotation(NewRot);
-	UE_LOG(LogTemp, Warning, TEXT("Yaw: %.1f"), AI->GetControlRotation().Yaw);
+	//UE_LOG(LogTemp, Warning, TEXT("Yaw: %.1f"), AI->GetControlRotation().Yaw);
 
 	// Flip direction when we reach the bound (within tolerance)
 	const float Remaining = FMath::Abs(FMath::FindDeltaAngleDegrees(NewYaw, TargetYaw));

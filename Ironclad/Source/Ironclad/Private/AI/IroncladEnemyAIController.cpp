@@ -322,10 +322,12 @@ void AIroncladEnemyAIController::OnPerceptionUpdated(const TArray<AActor*>& Upda
 
 		// Initialize scan params
 		constexpr float SearchDuration = 3.0f;
-		constexpr float SearchHalfAngleDeg = 70.0f;
+		constexpr float SearchHalfAngleDeg = 120.0f;
 
 		const APawn* SelfPawn = GetPawn();
 		const float CenterYaw = SelfPawn ? SelfPawn->GetActorRotation().Yaw : GetControlRotation().Yaw;
+
+		BlackboardComp->SetValueAsFloat(TEXT("SearchCenterYaw"), FRotator::NormalizeAxis(CenterYaw));
 
 		BlackboardComp->SetValueAsFloat(TEXT("SearchEndTime"), Now + SearchDuration);
 		BlackboardComp->SetValueAsFloat(TEXT("SearchMinYaw"), CenterYaw - SearchHalfAngleDeg);
