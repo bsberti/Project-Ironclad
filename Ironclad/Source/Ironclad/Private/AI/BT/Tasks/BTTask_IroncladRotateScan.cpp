@@ -49,9 +49,16 @@ EBTNodeResult::Type UBTTask_IroncladRotateScan::ExecuteTask(UBehaviorTreeCompone
 	const bool bInvalid = (EndTime <= Now) || (FMath::IsNearlyZero(MinYaw) && FMath::IsNearlyZero(MaxYaw));
 	if (!bUseBlackboardBounds || bInvalid)
 	{
+		// PSEUDOCODE / PLAN:
+		// 1. Read center yaw from pawn rotation (float).
+		// 2. Compute min and max yaw by subtracting/adding HalfAngleDeg.
+		// 3. Cast the computed value to float to avoid overload ambiguity when calling IC_NormalizeYaw.
+		// 4. Store normalized values into blackboard keys.
+		// Note: Apply explicit cast on both min and max calculations to ensure the single-float overload is selected.
+
 		const float CenterYaw = Pawn->GetActorRotation().Yaw;
-		BB->SetValueAsFloat(SearchMinYawKey, IC_NormalizeYaw(CenterYaw - HalfAngleDeg));
-		BB->SetValueAsFloat(SearchMaxYawKey, IC_NormalizeYaw(CenterYaw + HalfAngleDeg));
+		BB->SetValueAsFloat(SearchMinYawKey, IC_NormalizeYaw(static_cast<float>(CenterYaw - HalfAngleDeg)));
+		BB->SetValueAsFloat(SearchMaxYawKey, IC_NormalizeYaw(static_cast<float>(CenterYaw + HalfAngleDeg)));
 		BB->SetValueAsFloat(SearchEndTimeKey, Now + DurationSeconds);
 		BB->SetValueAsInt(SearchDirKey, 0);
 	}
@@ -101,19 +108,35 @@ void UBTTask_IroncladRotateScan::TickTask(UBehaviorTreeComponent& OwnerComp, uin
 	const float MaxYaw = IC_NormalizeYaw(BB->GetValueAsFloat(SearchMaxYawKey));
 	int32 Dir = BB->GetValueAsInt(SearchDirKey); // 0->min, 1->max
 
-	const float TargetYaw = (Dir == 0) ? MinYaw : MaxYaw;
+	//const float TargetYaw = (Dir == 0) ? MinYaw : MaxYaw; <-- This would be the original min/max approach, but it can cause stuttering at bounds. The oscillation approach is smoother.
+
+	const float CenterYaw = BB->GetValueAsFloat(TEXT("SearchCenterYaw"));
+	const float HalfAngle = 70.0f;
+	const float Speed = 2.5f;
+
+	const float StartTime = BB->GetValueAsFloat(TEXT("SearchStartTime"));
+	const float T = Now - StartTime;
+
+	const float DesiredYaw = FRotator::NormalizeAxis(CenterYaw + FMath::Sin(T * Speed) * HalfAngle);
 
 	const float CurrentYaw = AI->GetControlRotation().Yaw;
 	const float MaxStep = TurnRateDegPerSec * DeltaSeconds;
-	const float NewYaw = IC_MoveTowardAngle(CurrentYaw, TargetYaw, MaxStep);
+
+	// Move toward DesiredYaw with MaxStep (your existing IC_MoveTowardAngle)
+	const float NewYaw = IC_MoveTowardAngle(CurrentYaw, DesiredYaw, MaxStep);
+
+	//const float NewYaw = IC_MoveTowardAngle(CurrentYaw, TargetYaw, MaxStep); <-- This would be the original min/max approach, but it can cause stuttering at bounds. The oscillation approach is smoother.
 
 	FRotator NewRot = AI->GetControlRotation();
 	NewRot.Yaw = NewYaw;
 	AI->SetControlRotation(NewRot);
+	Pawn->SetActorRotation(FRotator(0.f, NewYaw, 0.f));
+
 	//UE_LOG(LogTemp, Warning, TEXT("Yaw: %.1f"), AI->GetControlRotation().Yaw);
+	//UE_LOG(LogTemp, Warning, TEXT("CtrlYaw=%.1f PawnYaw=%.1f"), AI->GetControlRotation().Yaw, Pawn->GetActorRotation().Yaw);
 
 	// Flip direction when we reach the bound (within tolerance)
-	const float Remaining = FMath::Abs(FMath::FindDeltaAngleDegrees(NewYaw, TargetYaw));
+	const float Remaining = FMath::Abs(FMath::FindDeltaAngleDegrees(NewYaw, DesiredYaw));
 	if (Remaining <= 2.0f)
 	{
 		Dir = (Dir == 0) ? 1 : 0;

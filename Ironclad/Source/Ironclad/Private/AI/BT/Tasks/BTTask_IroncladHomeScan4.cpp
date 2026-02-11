@@ -76,6 +76,7 @@ void UBTTask_IroncladHomeScan4::TickTask(UBehaviorTreeComponent& OwnerComp, uint
 	FRotator NewRot = AI->GetControlRotation();
 	NewRot.Yaw = NewYaw;
 	AI->SetControlRotation(NewRot);
+	Pawn->SetActorRotation(FRotator(0.f, NewYaw, 0.f));
 
 	// We "hold" a direction for HoldSecondsPerDirection; during the hold we keep rotating toward target yaw.
 	if (Now >= Mem->StepEndTime)

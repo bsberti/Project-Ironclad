@@ -11,6 +11,15 @@ AIroncladAggressorEnemy::AIroncladAggressorEnemy()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	bUseControllerRotationYaw = true;
+
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->bOrientRotationToMovement = false;
+		Move->bUseControllerDesiredRotation = true;
+		Move->RotationRate = FRotator(0.f, 720.f, 0.f);
+	}
+
 	WeaponComponent = CreateDefaultSubobject<UIroncladWeaponComponent>(TEXT("WeaponComponent"));
 }
 
