@@ -738,6 +738,46 @@ applicable.
 ### Next Actions
 - Card 3.8 — AI Debug & Tuning Tools
 
+## \[2026-02-04\] — Phase 3 / End
+
+### Session Goals
+- Implement AI Debug & Tuning Tools
+
+### Work Completed
+- Implemented enemy search behavior after perception loss
+- Added last-known-location investigation
+- Built timed scan rotation system
+- Implemented return-to-home transition
+- Added home idle scan behavior
+- Integrated and debugged blackboard search state
+- Fixed character rotation pipeline to support scan turning
+- Expanded AI debug instrumentation
+- Cleaned up Behavior Tree flow and abort logic
+
+### Technical Notes
+- Search system is driven by blackboard timing keys
+- Rotation uses controller yaw with character movement configured for controller-driven turning
+- Guard added to prevent repeated search initialization
+- Behavior Tree sequence ordering ensures deterministic transitions
+- Debug logs used to verify controller vs pawn rotation
+
+### Problems Encountered
+- Search origin invalid due to blackboard key typo
+- Behavior Tree sequence aborted before search completion
+- Controller yaw changes were not propagating to pawn rotation
+- Movement component settings prevented visible turning
+
+### Solutions / Decisions
+- Corrected blackboard key definitions
+- Hardened search initialization logic
+- Moved search completion flags into RotateScan task
+- Configured character movement for controller-driven rotation
+- Verified rotation pipeline with diagnostic logging
+
+### Next Actions
+- Observe AI behavior in extended combat scenarios
+- Tune scan timing and angles for gameplay feel
+- Continue Milestone 4 planning
 
 ------------------------------------------------------------------------
 
