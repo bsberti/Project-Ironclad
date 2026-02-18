@@ -779,6 +779,57 @@ applicable.
 - Tune scan timing and angles for gameplay feel
 - Continue Milestone 4 planning
 
+## \[2026-02-18\] — Phase 4 / Features & Polish
+
+### Session Goals
+- Implement core HUD subsystem architecture
+- Integrate vitals (health and stamina) with HUD
+- Integrate ability cooldown system with HUD
+- Implement visual cooldown feedback for StaminaBurst ability
+- Replace progress bar cooldown visualization with material-driven icon masking
+
+### Work Completed
+- Implemented UIroncladHUDSubsystem as a GameInstanceSubsystem responsible for HUD lifecycle and bindings. The subsystem now automatically creates the HUD widget, binds to the player controller, responds to pawn possession changes, and safely binds/unbinds from gameplay components.
+- Integrated UIroncladVitalsComponent with the HUD. Health and stamina bars now update in real time via delegate bindings without polling.
+- Integrated UIroncladAbilityComponent cooldown system with the HUD. Cooldown start events propagate through the subsystem and trigger widget updates correctly.
+- Created UI material (M_UI_CooldownMask) with scalar parameter CooldownAlpha to control cooldown fill visually.
+- Implemented dynamic material instance creation in the HUD widget and applied it to the StaminaBurst icon.
+- Connected cooldown timer logic to update the CooldownAlpha parameter continuously, producing a visual fill effect directly on the ability icon.
+- Removed legacy progress bar cooldown visualization and transitioned fully to material-driven masking.
+- Verified cooldown timing consistency between gameplay logic and UI.
+
+### Technical Notes
+- HUD lifecycle is managed via GameInstanceSubsystem, ensuring persistence across pawn changes.
+- Cooldown visualization uses a Dynamic Material Instance applied to the widget brush.
+- CooldownAlpha parameter is normalized (0.0–1.0) and updated via timer based on remaining cooldown time.
+- Ability cooldown timing source remains authoritative in UIroncladAbilityComponent using NextReadyTimeByAbility.
+- Subsystem binds to:
+    - UIroncladVitalsComponent delegates
+    - UIroncladAbilityComponent cooldown delegates
+- Widget updates are fully event-driven.
+
+### Problems Encountered
+- HUD widget initially failed to load due to incorrect asset path.
+- Ability cooldown events were firing correctly but UI was not updating due to missing delegate bindings.
+- Progress bar cooldown visualization conflicted with material-based masking.
+- Material instance was not updating because dynamic instance was not applied to widget brush.
+- Material IF node initially misconfigured.
+
+### Solutions / Decisions
+- Corrected widget loading using proper soft class path format.
+- Added ability component binding inside HUD subsystem.
+- Created dynamic material instance during widget construction and applied via SetBrushFromMaterial.
+- Replaced progress bar cooldown visualization with material masking approach.
+- Used timer-based updates to modify CooldownAlpha parameter during cooldown.
+- Ensured proper cleanup of timers and delegate bindings.
+
+### Next Actions
+- Generalize cooldown system to support multiple abilities
+- Implement reusable ability slot widget
+- Improve HUD layout and styling consistency
+- Add smooth animations for health and stamina bars
+- Begin lock-on UI integration
+
 ------------------------------------------------------------------------
 
 # Best Practices
