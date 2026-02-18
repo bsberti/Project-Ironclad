@@ -11,19 +11,16 @@ UBTTask_IroncladRotateScan::UBTTask_IroncladRotateScan()
 	bNotifyTick = true;
 }
 
-namespace 
+static float IC_NormalizeYaw(float Yaw)
 {
-	static float IC_NormalizeYaw(float Yaw)
-	{
-		return FRotator::NormalizeAxis(Yaw);
-	}
+	return FRotator::NormalizeAxis(Yaw);
+}
 
-	static float IC_MoveTowardAngle(float CurrentYaw, float TargetYaw, float MaxDelta)
-	{
-		const float Delta = FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw);
-		const float Step = FMath::Clamp(Delta, -MaxDelta, MaxDelta);
-		return IC_NormalizeYaw(CurrentYaw + Step);
-	}
+static float IC_MoveTowardAngle(float CurrentYaw, float TargetYaw, float MaxDelta)
+{
+	const float Delta = FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw);
+	const float Step = FMath::Clamp(Delta, -MaxDelta, MaxDelta);
+	return IC_NormalizeYaw(CurrentYaw + Step);
 }
 
 EBTNodeResult::Type UBTTask_IroncladRotateScan::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)

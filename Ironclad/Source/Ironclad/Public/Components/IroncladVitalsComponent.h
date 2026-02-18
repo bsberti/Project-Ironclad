@@ -62,6 +62,15 @@ public:
     float GetHealth() const;
 
     UFUNCTION(BlueprintPure, Category = "Vitals")
+    float GetMaxHealth() const { return MaxHealth; }
+
+    UFUNCTION(BlueprintPure, Category = "Vitals")
+    float GetStamina() const { return Stamina; }
+
+    UFUNCTION(BlueprintPure, Category = "Vitals")
+    float GetMaxStamina() const { return MaxStamina; }
+
+    UFUNCTION(BlueprintPure, Category = "Vitals")
     float GetStaminaNormalized() const;
 
     UFUNCTION(BlueprintPure)

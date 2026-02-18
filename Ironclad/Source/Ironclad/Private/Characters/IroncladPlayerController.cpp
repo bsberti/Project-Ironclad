@@ -2,6 +2,9 @@
 
 
 #include "Characters/IroncladPlayerController.h"
+
+#include "UI/IroncladHUDSubsystem.h"
+
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
@@ -12,6 +15,14 @@
 void AIroncladPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (UGameInstance* GI = GetGameInstance())
+	{
+		if (UIroncladHUDSubsystem* HUD = GI->GetSubsystem<UIroncladHUDSubsystem>())
+		{
+			HUD->EnsureHUD();
+		}
+	}
 
 	// only spawn touch controls on local player controllers
 	if (ShouldUseTouchControls() && IsLocalPlayerController())
