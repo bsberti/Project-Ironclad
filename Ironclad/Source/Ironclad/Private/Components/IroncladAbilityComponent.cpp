@@ -143,9 +143,60 @@ void UIroncladAbilityComponent::Commit(UIroncladAbilityDataAsset* Ability)
 	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
 	if (Ability->CooldownSeconds > 0.f)
 	{
-		NextReadyTimeByAbility.Add(Ability->AbilityId, Now + Ability->CooldownSeconds);
+		const double EndTime = Now + Ability->CooldownSeconds;
+		NextReadyTimeByAbility.Add(Ability->AbilityId, EndTime);
+
+		UE_LOG(LogTemp, Warning, TEXT("[Ability] CooldownStarted %s Dur=%.2f End=%.2f"),
+			*Ability->AbilityId.ToString(), Ability->CooldownSeconds, EndTime);
+
+		OnCooldownStarted.Broadcast(Ability->AbilityId, Ability->CooldownSeconds, EndTime);
+		StartCooldownTimerIfNeeded();
 	}
 }
+
+void UIroncladAbilityComponent::StartCooldownTimerIfNeeded()
+{
+	if (!GetWorld()) return;
+
+	if (!GetWorld()->GetTimerManager().IsTimerActive(CooldownTimerHandle))
+	{
+		// 10 Hz is plenty for “ended” detection and UI smoothness can be handled in HUD.
+		GetWorld()->GetTimerManager().SetTimer(CooldownTimerHandle, this, &UIroncladAbilityComponent::TickCooldowns, 0.1f, true);
+	}
+}
+
+void UIroncladAbilityComponent::StopCooldownTimerIfIdle()
+{
+	if (!GetWorld()) return;
+
+	if (NextReadyTimeByAbility.Num() == 0)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(CooldownTimerHandle);
+	}
+}
+
+void UIroncladAbilityComponent::TickCooldowns()
+{
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+
+	TArray<FName> ToRemove;
+	for (const auto& Pair : NextReadyTimeByAbility)
+	{
+		if (Now >= Pair.Value)
+		{
+			ToRemove.Add(Pair.Key);
+		}
+	}
+
+	for (const FName& Id : ToRemove)
+	{
+		NextReadyTimeByAbility.Remove(Id);
+		OnCooldownEnded.Broadcast(Id);
+	}
+
+	StopCooldownTimerIfIdle();
+}
+
 
 void UIroncladAbilityComponent::Execute(UIroncladAbilityDataAsset* Ability, AActor* OptionalTarget)
 {

@@ -4,6 +4,7 @@
 #include "Engine/GameInstance.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Pawn.h"
+#include "Components/IroncladAbilityComponent.h"
 
 #include "UI/IroncladHUDWidget.h"
 #include "Components/IroncladVitalsComponent.h"
@@ -27,6 +28,7 @@ void UIroncladHUDSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void UIroncladHUDSubsystem::Deinitialize()
 {
 	UnbindVitals();
+	UnbindAbilities();
 
 	if (HUDWidget)
 	{
@@ -56,7 +58,7 @@ void UIroncladHUDSubsystem::TryBindToLocalPlayer()
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[HUD] TryBindToLocalPlayer World=%s"), *GetNameSafe(GetWorld()));
+	//UE_LOG(LogTemp, Warning, TEXT("[HUD] TryBindToLocalPlayer World=%s"), *GetNameSafe(GetWorld()));
 
 	UGameInstance* GI = GetGameInstance();
 	if (!GI)
@@ -71,7 +73,7 @@ void UIroncladHUDSubsystem::TryBindToLocalPlayer()
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[HUD] Local PC=%s Pawn=%s"), *GetNameSafe(PC), *GetNameSafe(PC->GetPawn()));
+	//UE_LOG(LogTemp, Warning, TEXT("[HUD] Local PC=%s Pawn=%s"), *GetNameSafe(PC), *GetNameSafe(PC->GetPawn()));
 
 	if (CachedPC.Get() != PC)
 	{
@@ -102,8 +104,8 @@ void UIroncladHUDSubsystem::CreateHUDWidgetIfNeeded(APlayerController* PC)
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[HUD] HUDWidgetClass=%s"), *GetNameSafe(HUDWidgetClass));
-	UE_LOG(LogTemp, Warning, TEXT("[HUD] Creating HUD widget..."));
+	//UE_LOG(LogTemp, Warning, TEXT("[HUD] HUDWidgetClass=%s"), *GetNameSafe(HUDWidgetClass));
+	//UE_LOG(LogTemp, Warning, TEXT("[HUD] Creating HUD widget..."));
 
 	HUDWidget = CreateWidget<UIroncladHUDWidget>(PC, HUDWidgetClass);
 	if (HUDWidget)
@@ -115,7 +117,10 @@ void UIroncladHUDSubsystem::CreateHUDWidgetIfNeeded(APlayerController* PC)
 void UIroncladHUDSubsystem::HandlePawnChanged(APawn* OldPawn, APawn* NewPawn)
 {
 	UnbindVitals();
+	UnbindAbilities();
+
 	BindVitalsFromPawn(NewPawn);
+	BindAbilitiesFromPawn(NewPawn);
 }
 
 void UIroncladHUDSubsystem::BindVitalsFromPawn(APawn* Pawn)
@@ -176,4 +181,70 @@ void UIroncladHUDSubsystem::HandleStaminaChanged(float Current, float Max)
 void UIroncladHUDSubsystem::HandleDeath()
 {
 	// For now, nothing special. Later we can trigger a death overlay, fade, etc.
+}
+
+void UIroncladHUDSubsystem::BindAbilitiesFromPawn(APawn* Pawn)
+{
+	if (!Pawn)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[HUD] BindAbilitiesFromPawn: Pawn is null"));
+		return;
+	}
+
+	UIroncladAbilityComponent* Abilities = Pawn->FindComponentByClass<UIroncladAbilityComponent>();
+	UE_LOG(LogTemp, Warning, TEXT("[HUD] BindAbilitiesFromPawn: Pawn=%s Abilities=%s"),
+		*GetNameSafe(Pawn), *GetNameSafe(Abilities));
+	if (!Abilities)
+	{
+		// Not fatal: some pawns may not have abilities.
+		// UE_LOG(LogTemp, Warning, TEXT("[HUD] No IroncladAbilityComponent found on pawn %s"), *Pawn->GetName());
+		return;
+	}
+
+	BoundAbilities = Abilities;
+	UE_LOG(LogTemp, Warning, TEXT("[HUD] Binding cooldown delegates..."));
+	BoundAbilities->OnCooldownStarted.AddDynamic(this, &UIroncladHUDSubsystem::HandleCooldownStarted);
+	BoundAbilities->OnCooldownEnded.AddDynamic(this, &UIroncladHUDSubsystem::HandleCooldownEnded);
+
+	// Optional: if you want HUD to show cooldowns already active on respawn/load,
+	// add a method on AbilityComponent to enumerate active cooldowns and call it here.
+}
+
+void UIroncladHUDSubsystem::UnbindAbilities()
+{
+	if (!BoundAbilities)
+	{
+		return;
+	}
+
+	BoundAbilities->OnCooldownStarted.RemoveDynamic(this, &UIroncladHUDSubsystem::HandleCooldownStarted);
+	BoundAbilities->OnCooldownEnded.RemoveDynamic(this, &UIroncladHUDSubsystem::HandleCooldownEnded);
+
+	BoundAbilities = nullptr;
+}
+
+void UIroncladHUDSubsystem::HandleCooldownStarted(FName AbilityId, float Duration, double EndTime)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[HUD] CooldownStarted received: %s Dur=%.2f End=%.2f"),
+		*AbilityId.ToString(), Duration, EndTime);
+
+	if (HUDWidget)
+	{
+		// We’ll treat Remaining as Duration at start; widget can track EndTime internally if desired.
+		// If you prefer: change the widget API to accept EndTime too.
+		const float Remaining = Duration;
+		HUDWidget->SetAbilityCooldown(AbilityId, Remaining, Duration);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[HUD] HUDWidget is null during CooldownStarted"));
+	}
+}
+
+void UIroncladHUDSubsystem::HandleCooldownEnded(FName AbilityId)
+{
+	if (HUDWidget)
+	{
+		HUDWidget->ClearAbilityCooldown(AbilityId);
+	}
 }

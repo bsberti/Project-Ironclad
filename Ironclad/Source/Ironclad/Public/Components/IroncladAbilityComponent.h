@@ -4,6 +4,9 @@
 #include "Components/ActorComponent.h"
 #include "IroncladAbilityComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FIroncladOnCooldownStarted, FName, AbilityId, float, Duration, double, EndTime);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIroncladOnCooldownEnded, FName, AbilityId);
+
 class AIroncladCharacterBase;
 class UIroncladAbilityDataAsset;
 
@@ -39,6 +42,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Ironclad|Ability|Debug")
 	bool bEnableAbilityDebug = true;
 
+	UPROPERTY(BlueprintAssignable, Category = "Abilities|Events")
+	FIroncladOnCooldownStarted OnCooldownStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Abilities|Events")
+	FIroncladOnCooldownEnded OnCooldownEnded;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -60,4 +69,9 @@ private:
 	void Execute(UIroncladAbilityDataAsset* Ability, AActor* OptionalTarget);
 
 	void DebugPrint(UIroncladAbilityDataAsset* Ability, const FIroncladAbilityActivationResult& Result) const;
+
+	FTimerHandle CooldownTimerHandle;
+	void StartCooldownTimerIfNeeded();
+	void StopCooldownTimerIfIdle();
+	void TickCooldowns();
 };

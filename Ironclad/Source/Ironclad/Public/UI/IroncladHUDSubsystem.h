@@ -7,7 +7,8 @@
 class APlayerController;
 class APawn;
 class UIroncladHUDWidget;
-class UIroncladVitalsComponent;
+class UIroncladVitalsComponent; 
+class UIroncladAbilityComponent;
 
 UCLASS()
 class IRONCLAD_API UIroncladHUDSubsystem : public UGameInstanceSubsystem
@@ -33,6 +34,10 @@ private:
 	void BindVitalsFromPawn(APawn* Pawn);
 	void UnbindVitals();
 
+	// --- Abilities wiring ---
+	void BindAbilitiesFromPawn(APawn* Pawn);
+	void UnbindAbilities();
+
 	// --- Widget ---
 	void CreateHUDWidgetIfNeeded(APlayerController* PC);
 
@@ -45,11 +50,20 @@ private:
 	void HandleStaminaChanged(float Current, float Max);
 
 	UFUNCTION()
+	void HandleCooldownStarted(FName AbilityId, float Duration, double EndTime);
+
+	UFUNCTION()
+	void HandleCooldownEnded(FName AbilityId);
+
+	UFUNCTION()
 	void HandleDeath();
 
 private:
 	UPROPERTY()
 	TObjectPtr<UIroncladHUDWidget> HUDWidget;
+
+	UPROPERTY()
+	TObjectPtr<UIroncladAbilityComponent> BoundAbilities;
 
 	UPROPERTY()
 	TObjectPtr<UIroncladVitalsComponent> BoundVitals;
