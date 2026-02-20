@@ -6,6 +6,10 @@
 #include "BrainComponent.h"
 #include "Animation/AnimInstance.h"
 
+#include "UI/IroncladFloatingDamageActor.h"
+
+#include "Kismet/GameplayStatics.h"
+
 #include "Combat/Damage/IroncladDamageReceiverComponent.h"
 
 #include "Components/IroncladVitalsComponent.h"
@@ -21,6 +25,38 @@ AIroncladCharacterBase::AIroncladCharacterBase()
 	CombatGate = CreateDefaultSubobject<UIroncladCombatGateComponent>(TEXT("CombatGate"));
 
 	CurrentPoise = MaxPoise;
+}
+
+void AIroncladCharacterBase::HandleDamageTaken(float DamageAmount)
+{
+	UWorld* World = VitalsComponent ? VitalsComponent->GetWorld() : GetWorld();
+
+	if (DamageAmount <= 0.f || !World || !FloatingDamageActorClass)
+	{
+		UE_LOG(LogIroncladDamage, Warning,
+			TEXT("[Damage] %s::HandleDamageTaken invalid parameters: DamageAmount=%.1f GetWorld()=%s FloatingDamageActorClass=%s"),
+			*GetClass()->GetName(),
+			DamageAmount,
+			GetWorld() ? TEXT("valid") : TEXT("null"),
+			*GetNameSafe(FloatingDamageActorClass)
+			);
+		return;
+	}
+
+	// Spawn above the character; later you can use hit location if you pass it through damage spec.
+	const FVector SpawnLoc = GetActorLocation() + FVector(0.f, 0.f, 120.f);
+	const FRotator SpawnRot = FRotator::ZeroRotator;
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AActor* Spawned = GetWorld()->SpawnActor<AActor>(FloatingDamageActorClass, SpawnLoc, SpawnRot, Params);
+
+	// If it's our typed actor, call Init:
+	if (AIroncladFloatingDamageActor* DamageActor = Cast<AIroncladFloatingDamageActor>(Spawned))
+	{
+		DamageActor->Init(DamageAmount);
+	}
 }
 
 FIroncladDamageResult AIroncladCharacterBase::ApplyDamage_Implementation(const FIroncladDamageSpec& Spec)
@@ -149,11 +185,15 @@ void AIroncladCharacterBase::BeginPlay()
 {
     Super::BeginPlay();
 
+	UE_LOG(LogTemp, Warning, TEXT("[Player] BeginPlay %s Controller=%s"),
+		*GetName(), *GetNameSafe(GetController()));
+
 	CurrentPoise = MaxPoise;
 
     if (VitalsComponent)
     {
         VitalsComponent->OnDeath.AddDynamic(this, &AIroncladCharacterBase::HandleDeath);
+		VitalsComponent->OnDamageTaken.AddDynamic(this, &AIroncladCharacterBase::HandleDamageTaken);
     }
 }
 

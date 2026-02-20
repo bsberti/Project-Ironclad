@@ -66,6 +66,9 @@ bool UIroncladVitalsComponent::ApplyDamage(float Amount)
 
     if (!FMath::IsNearlyEqual(Old, Health))
     {
+        // NEW: notify listeners that damage was taken (floating numbers, hit UI, etc.)
+        OnDamageTaken.Broadcast(Amount);
+
         BroadcastHealth();
     }
 

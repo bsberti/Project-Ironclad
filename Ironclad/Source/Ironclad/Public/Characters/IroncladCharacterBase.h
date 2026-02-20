@@ -49,6 +49,13 @@ public:
 
     virtual void Tick(float DeltaTime) override;
 
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<AActor> FloatingDamageActorClass;
+
+	UFUNCTION()
+	void HandleDamageTaken(float DamageAmount);
+
+
 protected:
     virtual void BeginPlay() override;
 

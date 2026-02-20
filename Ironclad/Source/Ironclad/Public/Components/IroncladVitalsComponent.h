@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "IroncladVitalsComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageTaken, float, Damage);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FIroncladVitalsChanged, float, Current, float, Max);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FIroncladDeathEvent);
 
@@ -12,7 +13,10 @@ class IRONCLAD_API UIroncladVitalsComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
+    UPROPERTY(BlueprintAssignable)
+    FOnDamageTaken OnDamageTaken;
+
 	// Sets default values for this component's properties
 	UIroncladVitalsComponent();
 
