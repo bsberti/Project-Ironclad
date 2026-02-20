@@ -830,6 +830,52 @@ applicable.
 - Add smooth animations for health and stamina bars
 - Begin lock-on UI integration
 
+## \[2026-02-20\] — Phase 4 / Features & Polish
+
+### Session Goals
+- Implement floating damage number system
+- Integrate with existing damage pipeline
+- Ensure correct display, animation, and camera-facing behavior
+- Debug Blueprint/C++ parameter passing and widget initialization timing
+
+### Work Completed
+- Created AIroncladFloatingDamageActor with world-space UWidgetComponent
+- Integrated spawning into AIroncladCharacterBase::HandleDamageTaken
+- Implemented reflection-based invocation of Blueprint InitDamage function
+- Fixed timing issue between actor spawn and widget initialization
+- Added robust parameter handling supporting both FFloatProperty and FDoubleProperty
+- Implemented WBP_FloatingDamage with animated floating text and formatting
+- Added camera-facing logic in Tick to ensure readability from all angles
+- Fixed formatting issue that displayed incorrect or inverted damage values
+- Verified correct spawning, initialization, and destruction lifecycle
+
+### Technical Notes
+- UE5 Blueprint numeric parameters may compile as DoubleProperty even when shown as float in editor
+- Reflection-based parameter assignment must support both FFloatProperty and FDoubleProperty
+- WidgetComponent initialization order requires deferred application of widget state
+- Camera-facing behavior implemented via Tick using player camera rotation
+- Reflection approach allows loose coupling between gameplay and UI systems
+
+### Problems Encountered
+- Floating damage widget received incorrect value (0 instead of actual damage)
+- Reflection initially failed due to incorrect property type assumption
+- Widget initialized before damage value was available
+- Text appeared mirrored due to camera-facing issues
+- Blueprint parameter type mismatch between editor and runtime reflection
+
+### Solutions / Decisions
+- Implemented dual-type property assignment supporting float and double
+- Deferred widget initialization until widget instance was valid
+- Added camera-facing Tick logic to ensure readability
+- Standardized floating damage initialization via explicit Init call
+- Maintained decoupled architecture using reflection rather than direct casting
+
+### Next Actions
+- Prevent floating damage actor from interfering with targeting and AI perception
+- Implement filtering via collision and perception channels
+- Continue Phase 4 HUD improvements and combat feedback polish
+- Begin lock-on dependent UI behavior integration
+
 ------------------------------------------------------------------------
 
 # Best Practices
