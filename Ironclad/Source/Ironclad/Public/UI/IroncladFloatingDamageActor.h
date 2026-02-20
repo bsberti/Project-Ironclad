@@ -14,16 +14,32 @@ class IRONCLAD_API AIroncladFloatingDamageActor : public AActor
 public:
 	AIroncladFloatingDamageActor();
 
-	// Call right after spawning
 	void Init(float DamageAmount);
 
-protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+
+protected:
+
+	// Camera-facing
+	UPROPERTY(EditDefaultsOnly, Category = "FloatingDamage|Billboard")
+	bool bFaceCamera = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FloatingDamage|Billboard")
+	bool bYawOnly = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FloatingDamage|Billboard")
+	float FaceInterpSpeed = 20.f;
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "UI")
 	TObjectPtr<UWidgetComponent> WidgetComp;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	float LifeSeconds = 1.0f;
+	float LifeSeconds = 2.0f;
+
+	float PendingDamage = 0.f;
+	bool bHasPendingDamage = false;
+
+	void ApplyDamageToWidget();
 };

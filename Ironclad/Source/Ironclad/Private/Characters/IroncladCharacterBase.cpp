@@ -29,32 +29,34 @@ AIroncladCharacterBase::AIroncladCharacterBase()
 
 void AIroncladCharacterBase::HandleDamageTaken(float DamageAmount)
 {
+	UE_LOG(LogIroncladDamage, Warning, TEXT("[Damage] HandleDamageTaken called: %s Damage=%.1f"), *GetNameSafe(this), DamageAmount);
+
 	UWorld* World = VitalsComponent ? VitalsComponent->GetWorld() : GetWorld();
 
 	if (DamageAmount <= 0.f || !World || !FloatingDamageActorClass)
 	{
 		UE_LOG(LogIroncladDamage, Warning,
-			TEXT("[Damage] %s::HandleDamageTaken invalid parameters: DamageAmount=%.1f GetWorld()=%s FloatingDamageActorClass=%s"),
+			TEXT("[Damage] %s::HandleDamageTaken invalid params: DamageAmount=%.1f World=%s FloatingDamageActorClass=%s"),
 			*GetClass()->GetName(),
 			DamageAmount,
-			GetWorld() ? TEXT("valid") : TEXT("null"),
-			*GetNameSafe(FloatingDamageActorClass)
-			);
+			World ? TEXT("valid") : TEXT("null"),
+			*GetNameSafe(FloatingDamageActorClass));
 		return;
 	}
 
-	// Spawn above the character; later you can use hit location if you pass it through damage spec.
 	const FVector SpawnLoc = GetActorLocation() + FVector(0.f, 0.f, 120.f);
-	const FRotator SpawnRot = FRotator::ZeroRotator;
 
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	AActor* Spawned = GetWorld()->SpawnActor<AActor>(FloatingDamageActorClass, SpawnLoc, SpawnRot, Params);
+	AActor* Spawned = World->SpawnActor<AActor>(FloatingDamageActorClass, SpawnLoc, FRotator::ZeroRotator, Params);
 
-	// If it's our typed actor, call Init:
+	UE_LOG(LogIroncladDamage, Warning, TEXT("[Damage] Spawned class=%s"), *GetNameSafe(Spawned ? Spawned->GetClass() : nullptr));
+	UE_LOG(LogIroncladDamage, Warning, TEXT("[Damage] Spawned CDO=%s"), *GetNameSafe(Spawned ? Spawned->GetClass()->GetDefaultObject() : nullptr));
+
 	if (AIroncladFloatingDamageActor* DamageActor = Cast<AIroncladFloatingDamageActor>(Spawned))
 	{
+		UE_LOG(LogIroncladDamage, Warning, TEXT("[Damage] DamageActor runtime class=%s"), *GetNameSafe(DamageActor->GetClass()));
 		DamageActor->Init(DamageAmount);
 	}
 }
@@ -185,8 +187,9 @@ void AIroncladCharacterBase::BeginPlay()
 {
     Super::BeginPlay();
 
-	UE_LOG(LogTemp, Warning, TEXT("[Player] BeginPlay %s Controller=%s"),
-		*GetName(), *GetNameSafe(GetController()));
+	UE_LOG(LogIroncladDamage, Warning, TEXT("[Damage] %s BeginPlay: FloatingDamageActorClass=%s"),
+		*GetNameSafe(this),
+		*GetNameSafe(FloatingDamageActorClass));
 
 	CurrentPoise = MaxPoise;
 
