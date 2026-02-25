@@ -876,6 +876,41 @@ applicable.
 - Continue Phase 4 HUD improvements and combat feedback polish
 - Begin lock-on dependent UI behavior integration
 
+## \[2026-02-25\] — Phase 4 / Features & Polish
+
+### Session Goals
+- Implemente lock-on target switching, stabilize lock-on behavior, and fixe a critical AI perception regression caused by floating damage actors.
+
+### Work Completed
+- Implemented left/right target switching based on camera-relative direction
+- Added acquisition logic that selects the best candidate using angular alignment and distance scoring
+- Integrated input bindings for lock-on switching actions
+- Fixed movement orientation restoration when exiting lock-on
+- Verified reliable targeting using tag-based filtering
+- Fixed AI losing sight when floating damage numbers spawned between AI and player
+- Disabled collision on floating damage actor and widget component
+- Ensured floating actors do not block Visibility or Camera trace channels
+- Replaced anonymous namespace helper functions in RotateScan BT task with class-static functions
+- Eliminated IntelliSense instability and symbol resolution issues
+- Improved long-term maintainability of scan rotation logic
+
+### Technical Notes
+- Target switching uses camera right-vector dot product to classify candidates as left/right
+- Lock-on scoring prioritizes view alignment and proximity while enforcing cone and LOS constraints
+- Floating damage actors now operate as non-colliding visual-only entities
+- Static class helper functions provide stable symbol resolution across UE builds and Live Coding
+
+### Problems Encountered
+- Floating damage actors unintentionally blocked AI perception sight traces, causing AI to lose target tracking intermittently.
+- RotateScan helper functions triggered recurring IntelliSense instability due to internal linkage ambiguity.
+
+### Solutions / Decisions
+- Disabled all collision and overlap behavior on floating damage actor and widget component, preventing interference with LOS traces.
+- Moved helper functions into class-static scope, eliminating IntelliSense symbol resolution failures.
+
+### Next Actions
+- Card 4.3 — Save & Load System
+
 ------------------------------------------------------------------------
 
 # Best Practices
