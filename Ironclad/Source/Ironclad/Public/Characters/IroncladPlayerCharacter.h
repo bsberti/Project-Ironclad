@@ -134,6 +134,12 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Ability")
     class UInputAction* StaminaBurstAction;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Controls")
+	class UInputAction* LockOnSwitchLeftAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Controls")
+	class UInputAction* LockOnSwitchRightAction;
+
     // --------------------------------------------------
     // ------------------ COMPONENTS --------------------
 
@@ -191,7 +197,15 @@ protected:
     UFUNCTION()
     void DebugMakeNoise();
 
+    UFUNCTION()
+	void LockOnSwitchRight();
+
+    UFUNCTION()
+	void LockOnSwitchLeft();
+
     // --------------------------------------------------
+
+    AActor* FindSwitchTarget(bool bRight) const;
 
     UPROPERTY(EditDefaultsOnly, Category = "Abilities")
     TObjectPtr<UIroncladAbilityDataAsset> StaminaBurstAbility = nullptr;

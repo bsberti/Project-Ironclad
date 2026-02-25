@@ -406,6 +406,112 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
         UE_LOG(LogTemp, Warning, TEXT("StaminaBurstAction is not set on %s"), *GetName());
     }
 
+    if (LockOnSwitchLeftAction)
+    {
+        EnhancedInput->BindAction(LockOnSwitchLeftAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::LockOnSwitchLeft);
+    }
+    if (LockOnSwitchRightAction)
+    {
+        EnhancedInput->BindAction(LockOnSwitchRightAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::LockOnSwitchRight);
+    }
+
+}
+
+void AIroncladPlayerCharacter::LockOnSwitchLeft()
+{
+    if (!bIsLockedOn || !Controller) return;
+    if (AActor* Next = FindSwitchTarget(/*bRight=*/false))
+    {
+        EnableLockOn(Next);
+    }
+}
+
+void AIroncladPlayerCharacter::LockOnSwitchRight()
+{
+    if (!bIsLockedOn || !Controller) return;
+    if (AActor* Next = FindSwitchTarget(/*bRight=*/true))
+    {
+        EnableLockOn(Next);
+    }
+}
+
+AActor* AIroncladPlayerCharacter::FindSwitchTarget(bool bRight) const
+{
+    UWorld* World = GetWorld();
+    if (!World || !Controller) return nullptr;
+
+    const FVector Origin = GetActorLocation();
+    const FRotator ViewRot = Controller->GetControlRotation();
+    const FVector ViewForward = ViewRot.Vector();
+    const FVector ViewRight = FRotationMatrix(ViewRot).GetUnitAxis(EAxis::Y);
+
+    TArray<AActor*> OverlappedActors;
+    TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+    ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+
+    TArray<AActor*> Ignore;
+    Ignore.Add(const_cast<AIroncladPlayerCharacter*>(this));
+
+    const bool bHit = UKismetSystemLibrary::SphereOverlapActors(
+        World,
+        Origin,
+        TargetSearchRadius,
+        ObjectTypes,
+        LockOnTargetClass,
+        Ignore,
+        OverlappedActors
+    );
+
+    if (!bHit || OverlappedActors.Num() == 0)
+    {
+        return nullptr;
+    }
+
+    const float CosMaxAngle = FMath::Cos(FMath::DegreesToRadians(MaxTargetAngleDegrees));
+
+    AActor* Best = nullptr;
+    float BestScore = -FLT_MAX;
+
+    for (AActor* C : OverlappedActors)
+    {
+        if (!C || C == this || C == LockedTarget) continue;
+
+        if (!LockOnTargetClass)
+        {
+            if (!C->ActorHasTag(LockOnTargetTag)) continue;
+        }
+
+        const FVector ToC = (C->GetActorLocation() - Origin);
+        const float DistSq = ToC.SizeSquared();
+        if (DistSq < KINDA_SMALL_NUMBER || DistSq > FMath::Square(LockOnMaxDistance)) continue;
+
+        const FVector Dir = ToC.GetSafeNormal();
+        const float Forward = FVector::DotProduct(ViewForward, Dir);
+        if (Forward < CosMaxAngle) continue;
+
+        const float Side = FVector::DotProduct(ViewRight, Dir);
+        if (bRight)
+        {
+            if (Side <= 0.05f) continue; // small deadzone avoids “same line” picks
+        }
+        else
+        {
+            if (Side >= -0.05f) continue;
+        }
+
+        if (bRequireLineOfSight && !HasLineOfSightToTarget(C)) continue;
+
+        const float Dist = FMath::Sqrt(DistSq);
+        const float Score = (Forward * 2.0f) + (FMath::Abs(Side) * 0.5f) - (Dist / TargetSearchRadius);
+
+        if (Score > BestScore)
+        {
+            BestScore = Score;
+            Best = C;
+        }
+    }
+
+    return Best;
 }
 
 void AIroncladPlayerCharacter::OnStaminaBurstPressed()
@@ -602,12 +708,12 @@ void AIroncladPlayerCharacter::DisableLockOn()
     TimeOutsideCone = 0.f;
 
     // Restore your foundation movement/camera behavior.
-    /*bUseControllerRotationYaw = false;
+    bUseControllerRotationYaw = false;
 
     if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
     {
         MoveComp->bOrientRotationToMovement = true;
-    }*/
+    }
 
     // Restore camera defaults
     if (CameraBoom)

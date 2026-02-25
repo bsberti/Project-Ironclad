@@ -42,4 +42,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Ironclad|Blackboard")
 	FName SearchDirKey = TEXT("SearchDir");
+
+private:
+	static float IC_NormalizeYaw(float Yaw);
+	static float IC_MoveTowardAngle(float CurrentYaw, float TargetYaw, float MaxDelta);
 };

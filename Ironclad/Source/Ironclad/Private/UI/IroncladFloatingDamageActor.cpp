@@ -30,10 +30,18 @@ void AIroncladFloatingDamageActor::BeginPlay()
 {
 	Super::BeginPlay();
 
+    SetActorEnableCollision(false);
+
 	// Make sure widget instance exists
 	if (WidgetComp)
 	{
 		WidgetComp->InitWidget();
+
+        WidgetComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        WidgetComp->SetGenerateOverlapEvents(false);
+        WidgetComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+        WidgetComp->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+        WidgetComp->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	}
 
     if (bHasPendingDamage) {
