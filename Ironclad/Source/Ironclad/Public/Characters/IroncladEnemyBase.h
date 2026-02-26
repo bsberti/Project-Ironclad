@@ -28,6 +28,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ironclad|Enemy")
 	EIroncladFaction Faction = EIroncladFaction::Hostile;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ironclad|Spawn")
+	FName SpawnId = NAME_None;
+
+	UFUNCTION(BlueprintCallable, Category = "Ironclad|Spawn")
+	void SetSpawnId(FName InId) { SpawnId = InId; }
+
 protected:
 	virtual void OnHitReceived_Implementation();
 
