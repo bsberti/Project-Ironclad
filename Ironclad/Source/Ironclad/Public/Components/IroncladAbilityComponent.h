@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Save/IroncladSaveTypes.h"
+
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "IroncladAbilityComponent.generated.h"
@@ -48,6 +50,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Abilities|Events")
 	FIroncladOnCooldownEnded OnCooldownEnded;
 
+	// Save pipeline
+	void GetCooldownsForSave(TArray<FIroncladCooldownSaveData>& OutCooldowns) const;
+	void ApplyCooldownsFromSave(const TArray<FIroncladCooldownSaveData>& Cooldowns);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -56,6 +62,9 @@ private:
 
 	// Cooldowns: AbilityId -> NextReadyTime (world seconds)
 	TMap<FName, double> NextReadyTimeByAbility;
+
+	// Cooldowns: AbilityId -> Duration (seconds) used for UI + save/load determinism
+	TMap<FName, float> CooldownDurationByAbility;
 
 	// Pending ability execution for montage notify mode
 	UPROPERTY()

@@ -1,9 +1,12 @@
 #include "Components/IroncladAbilityComponent.h"
+#include "Components/IroncladVitalsComponent.h"
 
 #include "Abilities/IroncladAbilityDataAsset.h"
+
 #include "Characters/IroncladCharacterBase.h"
-#include "Components/IroncladVitalsComponent.h"
+
 #include "Combat/Damage/IroncladDamageable.h"
+
 #include "Animation/AnimInstance.h"
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
@@ -144,10 +147,9 @@ void UIroncladAbilityComponent::Commit(UIroncladAbilityDataAsset* Ability)
 	if (Ability->CooldownSeconds > 0.f)
 	{
 		const double EndTime = Now + Ability->CooldownSeconds;
-		NextReadyTimeByAbility.Add(Ability->AbilityId, EndTime);
 
-		UE_LOG(LogTemp, Warning, TEXT("[Ability] CooldownStarted %s Dur=%.2f End=%.2f"),
-			*Ability->AbilityId.ToString(), Ability->CooldownSeconds, EndTime);
+		NextReadyTimeByAbility.Add(Ability->AbilityId, EndTime);
+		CooldownDurationByAbility.Add(Ability->AbilityId, Ability->CooldownSeconds);
 
 		OnCooldownStarted.Broadcast(Ability->AbilityId, Ability->CooldownSeconds, EndTime);
 		StartCooldownTimerIfNeeded();
@@ -191,12 +193,12 @@ void UIroncladAbilityComponent::TickCooldowns()
 	for (const FName& Id : ToRemove)
 	{
 		NextReadyTimeByAbility.Remove(Id);
+		CooldownDurationByAbility.Remove(Id);
 		OnCooldownEnded.Broadcast(Id);
 	}
 
 	StopCooldownTimerIfIdle();
 }
-
 
 void UIroncladAbilityComponent::Execute(UIroncladAbilityDataAsset* Ability, AActor* OptionalTarget)
 {
@@ -298,5 +300,54 @@ void UIroncladAbilityComponent::DebugPrint(UIroncladAbilityDataAsset* Ability, c
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Cyan, Msg);
+	}
+}
+
+void UIroncladAbilityComponent::GetCooldownsForSave(TArray<FIroncladCooldownSaveData>& OutCooldowns) const
+{
+	OutCooldowns.Reset();
+
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+
+	// Assuming you already track something like NextReadyTimeByAbility and CooldownDurationByAbility.
+	for (const auto& Pair : NextReadyTimeByAbility)
+	{
+		const FName AbilityId = Pair.Key;
+		const double NextReady = Pair.Value;
+
+		if (NextReady <= Now)
+		{
+			continue;
+		}
+
+		FIroncladCooldownSaveData Item;
+		Item.AbilityId = AbilityId;
+		Item.Remaining = static_cast<float>(NextReady - Now);
+
+		const float* Duration = CooldownDurationByAbility.Find(AbilityId);
+		Item.Duration = Duration ? *Duration : Item.Remaining; // fallback
+
+		OutCooldowns.Add(Item);
+	}
+}
+
+void UIroncladAbilityComponent::ApplyCooldownsFromSave(const TArray<FIroncladCooldownSaveData>& Cooldowns)
+{
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+
+	for (const FIroncladCooldownSaveData& Item : Cooldowns)
+	{
+		if (Item.AbilityId.IsNone() || Item.Remaining <= 0.f)
+		{
+			continue;
+		}
+
+		// Rebuild deterministic end time based on "now"
+		const double EndTime = Now + Item.Remaining;
+		NextReadyTimeByAbility.Add(Item.AbilityId, EndTime);
+		CooldownDurationByAbility.Add(Item.AbilityId, Item.Duration);
+
+		// Optional: re-notify HUD so cooldown UI reflects loaded state
+		OnCooldownStarted.Broadcast(Item.AbilityId, Item.Duration, EndTime);
 	}
 }

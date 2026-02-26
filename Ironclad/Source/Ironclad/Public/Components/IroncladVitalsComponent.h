@@ -65,11 +65,17 @@ public:
     UFUNCTION(BlueprintPure, Category = "Vitals")
     float GetHealth() const;
 
+    UFUNCTION(BlueprintCallable, Category = "Vitals")
+    void SetHealth(float NewHealth);
+
     UFUNCTION(BlueprintPure, Category = "Vitals")
     float GetMaxHealth() const { return MaxHealth; }
 
     UFUNCTION(BlueprintPure, Category = "Vitals")
     float GetStamina() const { return Stamina; }
+
+    UFUNCTION(BlueprintCallable, Category = "Vitals")
+    void SetStamina(float NewStamina);
 
     UFUNCTION(BlueprintPure, Category = "Vitals")
     float GetMaxStamina() const { return MaxStamina; }

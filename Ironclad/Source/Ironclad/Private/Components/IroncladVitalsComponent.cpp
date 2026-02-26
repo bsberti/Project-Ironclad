@@ -156,6 +156,34 @@ float UIroncladVitalsComponent::GetHealth() const
     return Health;
 }
 
+void UIroncladVitalsComponent::SetHealth(float NewHealth)
+{
+    const float Old = Health;
+    Health = FMath::Clamp(NewHealth, 0.f, MaxHealth);
+
+    if (!FMath::IsNearlyEqual(Old, Health))
+    {
+        OnHealthChanged.Broadcast(Health, MaxHealth);
+
+        // Optional: if your component fires death when Health hits 0
+        if (Health <= 0.f && Old > 0.f)
+        {
+            OnDeath.Broadcast();
+        }
+    }
+}
+
+void UIroncladVitalsComponent::SetStamina(float NewStamina)
+{
+    const float Old = Stamina;
+    Stamina = FMath::Clamp(NewStamina, 0.f, MaxStamina);
+
+    if (!FMath::IsNearlyEqual(Old, Stamina))
+    {
+        OnStaminaChanged.Broadcast(Stamina, MaxStamina);
+    }
+}
+
 float UIroncladVitalsComponent::GetStaminaNormalized() const
 {
     return (MaxStamina > 0.f) ? (Stamina / MaxStamina) : 0.f;
