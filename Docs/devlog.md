@@ -911,6 +911,37 @@ applicable.
 ### Next Actions
 - Card 4.3 — Save & Load System
 
+## \[2026-02-26\] — Phase 4 / Save and Load
+
+### Session Goals
+- Refactor enemy instantiation to be runtime-driven and prepare deterministic save pipeline infrastructure.
+
+### Work Completed
+- Implemented AIroncladEnemySpawnPoint system.
+- Converted arena enemies from editor-placed to dynamically spawned.
+- Added SpawnId tracking for save/load consistency.
+- Implemented ground snapping using capsule half-height trace.
+- Restored AI controller possession and Behavior Tree execution for spawned enemies.
+- Added deterministic cooldown duration tracking.
+- Implemented cooldown serialization helpers.
+- Added safe setters to VitalsComponent for load application.
+
+### Technical Notes
+- Enemy transform origin adjusted to capsule center.
+- Save system uses RemainingCooldown instead of absolute world time.
+- AI BT execution moved/validated through OnPossess flow.
+
+### Problems Encountered
+- Spawned enemies floating due to capsule origin.
+- AI not possessing spawned pawns initially.
+
+### Solutions / Decisions
+- Performed ground trace + capsule half-height offset.
+- Enabled AutoPossessAI for spawned actors and validated controller spawn.
+
+### Next Actions
+- Card 4.4 — Pause & Settings Menu
+
 ------------------------------------------------------------------------
 
 # Best Practices
