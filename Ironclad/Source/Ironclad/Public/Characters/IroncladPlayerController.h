@@ -17,7 +17,19 @@ UCLASS(abstract)
 class AIroncladPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-	
+
+public:
+	virtual void SetupInputComponent() override;
+
+	UFUNCTION(BlueprintCallable, Category = "Ironclad|UI")
+	void TogglePauseMenu();
+
+	UFUNCTION(BlueprintCallable, Category = "Ironclad|UI")
+	void OpenPauseMenu();
+
+	UFUNCTION(BlueprintCallable, Category = "Ironclad|UI")
+	void ClosePauseMenu();
+
 protected:
 
 	/** Input Mapping Contexts */
@@ -43,10 +55,16 @@ protected:
 	/** Gameplay initialization */
 	virtual void BeginPlay() override;
 
-	/** Input mapping context setup */
-	virtual void SetupInputComponent() override;
-
 	/** Returns true if the player should use UMG touch controls */
 	bool ShouldUseTouchControls() const;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Ironclad|UI")
+	TSubclassOf<UUserWidget> PauseMenuClass;
+
+private:
+	UPROPERTY()
+	TObjectPtr<UUserWidget> ActivePauseMenu;
+
+	bool IsPauseMenuOpen() const;
+	void ApplyPauseInputMode(bool bEnableUI);
 };

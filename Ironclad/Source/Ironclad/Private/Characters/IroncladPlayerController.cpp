@@ -76,3 +76,61 @@ bool AIroncladPlayerController::ShouldUseTouchControls() const
 	// are we on a mobile platform? Should we force touch?
 	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;
 }
+
+bool AIroncladPlayerController::IsPauseMenuOpen() const
+{
+	return ActivePauseMenu && ActivePauseMenu->IsInViewport();
+}
+
+void AIroncladPlayerController::ApplyPauseInputMode(bool bEnableUI)
+{
+	if (bEnableUI)
+	{
+		bShowMouseCursor = true;
+		FInputModeGameAndUI Mode;
+		Mode.SetHideCursorDuringCapture(false);
+		Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		Mode.SetWidgetToFocus(ActivePauseMenu
+			? TSharedPtr<SWidget>(ActivePauseMenu->TakeWidget())
+			: TSharedPtr<SWidget>(nullptr));
+		SetInputMode(Mode);
+	}
+	else
+	{
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly());
+	}
+}
+
+void AIroncladPlayerController::TogglePauseMenu()
+{
+	if (IsPauseMenuOpen()) ClosePauseMenu();
+	else OpenPauseMenu();
+}
+
+void AIroncladPlayerController::OpenPauseMenu()
+{
+	if (IsPauseMenuOpen() || !PauseMenuClass) return;
+
+	SetPause(true);
+
+	ActivePauseMenu = CreateWidget<UUserWidget>(this, PauseMenuClass);
+	if (!ActivePauseMenu) return;
+
+	ActivePauseMenu->AddToViewport(100);
+	ApplyPauseInputMode(true);
+}
+
+void AIroncladPlayerController::ClosePauseMenu()
+{
+	if (!IsPauseMenuOpen()) return;
+
+	if (ActivePauseMenu)
+	{
+		ActivePauseMenu->RemoveFromParent();
+		ActivePauseMenu = nullptr;
+	}
+
+	SetPause(false);
+	ApplyPauseInputMode(false);
+}
