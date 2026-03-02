@@ -140,6 +140,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Controls")
 	class UInputAction* LockOnSwitchRightAction;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Controls")
+    class UInputAction* PauseAction;
+
     // --------------------------------------------------
     // ------------------ COMPONENTS --------------------
 
@@ -202,6 +205,9 @@ protected:
 
     UFUNCTION()
 	void LockOnSwitchLeft();
+
+    UFUNCTION()
+    void OnPausePressed();
 
     // --------------------------------------------------
 

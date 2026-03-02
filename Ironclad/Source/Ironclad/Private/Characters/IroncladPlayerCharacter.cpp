@@ -1,4 +1,5 @@
 #include "Characters/IroncladPlayerCharacter.h"
+#include "Characters/IroncladPlayerController.h"
 
 #include "AI/IroncladEnemyAIController.h"
 
@@ -415,6 +416,21 @@ void AIroncladPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
         EnhancedInput->BindAction(LockOnSwitchRightAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::LockOnSwitchRight);
     }
 
+    if (PauseAction)     {
+        EnhancedInput->BindAction(PauseAction, ETriggerEvent::Started, this, &AIroncladPlayerCharacter::OnPausePressed);
+    }
+     else {
+        UE_LOG(LogTemp, Warning, TEXT("PauseAction is not set on %s"), *GetName());
+	}
+
+}
+
+void AIroncladPlayerCharacter::OnPausePressed()
+{
+    if (AIroncladPlayerController* IPC = Cast<AIroncladPlayerController>(GetController()))
+    {
+        IPC->TogglePauseMenu();
+    }
 }
 
 void AIroncladPlayerCharacter::LockOnSwitchLeft()
