@@ -942,6 +942,34 @@ applicable.
 ### Next Actions
 - Card 4.4 — Pause & Settings Menu
 
+## \[2026-03-03\] — Phase 4 / Save and Load
+
+### Session Goals
+- Continue workingg on Save/Load on Pause Menu
+
+### Work Completed
+- Implemented functional Pause Menu UI.
+- Integrated Resume, Restart, Save, and Load actions.
+- Connected Pause toggle to PlayerController.
+- Validated Save/Load through UI entry points.
+- Implemented load availability validation (HasSave).
+
+### Technical Notes
+- Pause flow uses SetPause(true/false) with proper input mode switching.
+- Save/Load accessed through UGameInstanceSubsystem.
+- Restart uses OpenLevel with current level name.
+- UI logic separated cleanly from gameplay systems.
+
+### Problems Encountered
+- None significant; integration was straightforward.
+
+### Solutions / Decisions
+- Confirmed subsystem access through GameInstance.
+- Ensured menu closes before restart/load to avoid input conflicts.
+
+### Next Actions
+- Card 4.5 — Combat feedback polish
+
 ------------------------------------------------------------------------
 
 # Best Practices
